@@ -59,7 +59,7 @@ function richLog(): TimelineEvent[] {
     requestContext(3, { contextWindow: 128000 }),
     stepStart(4, { time: 10_000 }),
     userMessage(5, [{ type: 'image', content: [{ type: 'text', text: 'px' }] }, ...text('hello there')], { kind: 'user' }),
-    developerMessage(6, { kind: 'plugin', plugin: 'dsh-context', form: 'notice', summary: 'watching' }),
+    developerMessage(6, { kind: 'plugin', plugin: 'dsh-context-explainer', form: 'notice', summary: 'watching' }),
     assistantMessage(7, { turn: 1, step: 0, usage: { inputTokens: 10, cacheReadTokens: 3, cacheWriteTokens: 4, outputTokens: 5 } }),
     toolCall(8, { callId: 'c1', name: 'bash', arguments: JSON.stringify({ command: 'ls', description: 'list' }), turn: 1, step: 0 }),
     jobRegistered(9, { callId: 'c1', startedAt: 11_000 }),

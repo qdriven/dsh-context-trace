@@ -3,7 +3,7 @@ import type { FleetDelegation, FleetDescriptor, FleetDetail, FleetMemberInfo, Fl
 import { type ColdReadGate, makeColdReadGate } from './coldRead'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const FLEET_ROUTE = '/api/dsh-context/fleet'
+export const FLEET_ROUTE = '/api/dsh-context-explainer/fleet'
 
 const MESSAGES_MAX = 80
 const MESSAGE_TEXT_MAX = 400
@@ -202,8 +202,7 @@ function delegationOf(seq: number, data: Record<string, unknown>): FleetDelegati
   if (typeof data.childId !== 'string' || data.childId === '') return null
   if (typeof data.childCreatedAt !== 'number' || !Number.isFinite(data.childCreatedAt)) return null
   const mode = data.mode
-  if (mode !== 'one-shot' && mode !== 'continuable' && mode !== 'external') return null
-  if (mode === 'external' ? data.version !== 2 : data.version !== 0 && data.version !== 1) return null
+  if (mode !== 'one-shot' && mode !== 'continuable' && mode !== 'external' && mode !== 'unknown') return null
   if (mode === 'continuable' && (typeof data.label !== 'string' || data.label === '')) return null
   return {
     seq,
@@ -448,10 +447,10 @@ export function watchFleetChannel(ctx: Context, coldReads: ColdReadGate = makeCo
         sessionId = asRecord(body)?.sessionId
         mode = detailModeOf(body)
       } catch {
-        return failure('dsh-context/bad-request', 'body is not JSON')
+        return failure('dsh-context-explainer/bad-request', 'body is not JSON')
       }
       if (typeof sessionId !== 'string' || sessionId === '') {
-        return failure('dsh-context/bad-request', 'missing sessionId')
+        return failure('dsh-context-explainer/bad-request', 'missing sessionId')
       }
       try {
         const query = ctx.get('sessionQuery') as SessionQueryFace | undefined
@@ -490,7 +489,7 @@ export function watchFleetChannel(ctx: Context, coldReads: ColdReadGate = makeCo
         return failure('gateway/internal', err instanceof Error ? err.message : String(err))
       }
     }
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, FLEET_ROUTE, handler, 'dsh-context: fleet route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, FLEET_ROUTE, handler, 'dsh-context-explainer: fleet route')
   })
 }
 

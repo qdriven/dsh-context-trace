@@ -1,5 +1,5 @@
 import { createElement as h } from 'react'
-import { DICT_EN, DICT_ZH } from './i18n'
+import { DICTS } from './i18n'
 import { registerContextCommand } from './command'
 import { makeContextModal } from './components/contextModal'
 import { makeOverviewPanel } from './components/overviewPanel'
@@ -13,17 +13,12 @@ import { makeContextView } from './components/contextView'
 import { makeContextJumpButton } from './components/contextJump'
 import { makeFleetView } from './components/fleetView'
 import { watchFleetTab } from './fleetTab'
-import { makeSessionsTab } from './components/sessionsTab'
-import { watchSessionsTab } from './sessionsTabGate'
-import { makeTraceTab } from './components/traceTab'
-import { watchTraceTab } from './traceTabGate'
 import { makeAgentHeads } from './agentHeads'
 import { watchHistoryFaces } from './historyPage'
 import { watchPlacement } from './placement'
 import { watchSidebarContextTab } from './sidebar'
-import { activateViewTab } from './viewFocus'
-import { requestTraceFocus } from './traceFocus'
 import { makeViewKit } from './viewkit'
+import { JUMP_SLOT, JUMP_SLOT_ID, LOCALE_NS, MODAL_OVERLAY_ID } from './ids'
 
 import './styles/tailwind.css'
 import './styles/base.css'
@@ -46,22 +41,22 @@ import './styles/pulse.css'
 import './styles/overview.css'
 import './styles/dateRange.css'
 import './styles/recom.css'
-import './styles/trace.css'
+import './styles/fullscreen.css'
+import './styles/plugininfo.css'
 
-const NS = 'dsh-context'
+const NS = LOCALE_NS
 
-const JUMP_SLOT = 'conversation.chat.assistant-actions'
-const JUMP_ID = 'context-jump'
+const JUMP_ID = JUMP_SLOT_ID
 
 function apply(ctx: ClientCtx): void {
   if (entrySeated(ctx, JUMP_SLOT, JUMP_ID)) return
   ctx.effect(() => {
-    return ctx.locale.register(NS, { zh: DICT_ZH, en: DICT_EN })
-  }, 'dsh-context: dictionaries')
+    return ctx.locale.register(NS, DICTS)
+  }, 'dsh-context-explainer: dictionaries')
   const t = ctx.locale.bind(NS)
 
   const kit = makeViewKit(t, ctx.locale)
-  ctx.effect(() => resetSessionWarm, 'dsh-context: warm-up timers')
+  ctx.effect(() => resetSessionWarm, 'dsh-context-explainer: warm-up timers')
   watchHistoryFaces(ctx)
   const settings = createContextSettings()
   const heads = makeAgentHeads()
@@ -74,33 +69,7 @@ function apply(ctx: ClientCtx): void {
       props => h(ContextView, props),
     )),
     sidebar: () => watchSidebarContextTab(ctx, ContextView, t, NS),
-  }), 'dsh-context: placement')
-
-  const SessionsTab = makeSessionsTab(ctx, kit, settings)
-  const TraceTab = makeTraceTab(ctx, kit, settings)
-  ctx.effect(() => watchSessionsTab(
-    ctx,
-    settings,
-    props => h(SessionsTab, {
-      ...props,
-      onOpenTrace: (id: string) => {
-        requestTraceFocus(id)
-        activateViewTab(t('tab.trace'))
-      },
-    } as Parameters<typeof SessionsTab>[0]),
-    t,
-    NS,
-  ), 'dsh-context: sessions tab')
-  ctx.effect(() => watchTraceTab(
-    ctx,
-    settings,
-    props => h(TraceTab, {
-      ...props,
-      onOpenSessions: () => { activateViewTab(t('tab.sessions')) },
-    } as Parameters<typeof TraceTab>[0]),
-    t,
-    NS,
-  ), 'dsh-context: trace tab')
+  }), 'dsh-context-explainer: placement')
 
   ctx.effect(() => watchFleetTab(
     ctx,
@@ -108,7 +77,7 @@ function apply(ctx: ClientCtx): void {
     props => h(FleetView, props as unknown as Parameters<typeof FleetView>[0]),
     t,
     NS,
-  ), 'dsh-context: fleet tab')
+  ), 'dsh-context-explainer: fleet tab')
 
   const ContextJump = makeContextJumpButton(ctx, kit, settings)
   ctx.slots.inject(JUMP_SLOT, () => {
@@ -123,7 +92,7 @@ function apply(ctx: ClientCtx): void {
   ctx.slots.inject('conversation.input.overlay', () => {
     return ctx.slots.register(
       { name: 'conversation.input.overlay',
-        id: 'context-modal',
+        id: MODAL_OVERLAY_ID,
         order: 10,
         locale: NS,
         inject: (sessionId = '') => ({ hooks: { contextModal: modalStoreOf(sessionId) }, warm: true }) },
@@ -138,7 +107,7 @@ function apply(ctx: ClientCtx): void {
     props => h(OverviewPanel, props as unknown as Parameters<typeof OverviewPanel>[0]),
     t,
     NS,
-  ), 'dsh-context: insight page')
+  ), 'dsh-context-explainer: insight page')
 
   const cardFace = (): {
     hooks: { contextSettings: typeof settings.store }
@@ -152,7 +121,7 @@ function apply(ctx: ClientCtx): void {
     const c = raw as ClientCtx & { configForms?: ConfigFormsFace }
     const forms = c.configForms
     if (forms === undefined || typeof forms.get !== 'function' || typeof forms.whileServed !== 'function') return
-    c.effect(() => settings.attach(forms.get(NS)), 'dsh-context: config forms')
+    c.effect(() => settings.attach(forms.get(NS)), 'dsh-context-explainer: config forms')
     const PluginConfigCard = makePluginConfigCard(kit)
     c.effect(() => forms.whileServed([NS], () => {
       return c.slots.inject('plugins.bundle.config', () => {
@@ -161,12 +130,12 @@ function apply(ctx: ClientCtx): void {
           props => h(PluginConfigCard, props as unknown as Parameters<typeof PluginConfigCard>[0]),
         )
       }) as () => void
-    }), 'dsh-context: plugins-page card')
+    }), 'dsh-context-explainer: plugins-page card')
   })
 }
 
 module.exports = {
-  name: 'dsh-context',
+  name: 'dsh-context-explainer',
   inject: ['slots', 'locale'],
   apply,
 }

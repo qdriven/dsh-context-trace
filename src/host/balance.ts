@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { PlatformBalance, PlatformBalanceEntry } from '../shared/types'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const BALANCE_ROUTE = '/api/dsh-context/balance'
+export const BALANCE_ROUTE = '/api/dsh-context-explainer/balance'
 
 const DEEPSEEK_PROVIDER = 'deepseek-official'
 
@@ -203,6 +203,6 @@ export function watchBalanceChannel(ctx: Context): void {
       return Response.json({ ok: true, value }, { headers: { 'cache-control': 'no-store' } })
     }
 
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, BALANCE_ROUTE, handler, 'dsh-context: balance route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, BALANCE_ROUTE, handler, 'dsh-context-explainer: balance route')
   })
 }

@@ -61,9 +61,9 @@ async function boot() {
   return { ctx, fiber }
 }
 
-describe('dsh-context host plugin', () => {
+describe('dsh-context-explainer host plugin', () => {
   test('module shape is the sessionProjections inject gate, and all three units serve folded views over real appends', async () => {
-    assert.equal(name, 'dsh-context')
+    assert.equal(name, 'dsh-context-explainer')
     assert.deepEqual(inject, ['sessionProjections'])
     const { ctx } = await boot()
     const session = ctx.sessions.create()
@@ -211,10 +211,10 @@ describe('dsh-context host plugin', () => {
     assert.equal(timeline.nodes.length, 0, 'the collections stay off the wire value')
     assert.equal(timeline.requests.length, 0)
 
-    assert.ok(routes.has('/api/dsh-context/attachment'), 'the attachment-location route registered beside the detail route')
-    const route = routes.get('/api/dsh-context/detail')
+    assert.ok(routes.has('/api/dsh-context-explainer/attachment'), 'the attachment-location route registered beside the detail route')
+    const route = routes.get('/api/dsh-context-explainer/detail')
     assert.ok(route !== undefined && route.fetch !== undefined, 'the detail route registered')
-    const response = await route.fetch(new Request('http://dsh.test/api/dsh-context/detail', {
+    const response = await route.fetch(new Request('http://dsh.test/api/dsh-context-explainer/detail', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ sessionId: session.header.id }),

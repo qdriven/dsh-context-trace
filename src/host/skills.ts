@@ -3,7 +3,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SkillInfo } from '../shared/types'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const SKILLS_ROUTE = '/api/dsh-context/skills'
+export const SKILLS_ROUTE = '/api/dsh-context-explainer/skills'
 
 const MAX_SKILLS = 500
 
@@ -135,6 +135,6 @@ export function watchSkillCatalog(ctx: Context): void {
       return Response.json({ ok: true, value }, { headers: { 'cache-control': 'no-store' } })
     }
 
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, SKILLS_ROUTE, handler, 'dsh-context: skills route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, SKILLS_ROUTE, handler, 'dsh-context-explainer: skills route')
   })
 }

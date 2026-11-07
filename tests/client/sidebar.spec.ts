@@ -14,7 +14,7 @@ import type { ContextViewProps, SidebarTabDefinitionLike } from '../../src/clien
 import { TestClientCtx, asClientCtx } from './helpers/harness'
 import { makeKit, mount, query, text } from './helpers/kit'
 
-const NS = 'dsh-context'
+const NS = 'dsh-context-explainer'
 
 function registry(): { definitions: SidebarTabDefinitionLike[]; disposed: number; register: (d: SidebarTabDefinitionLike) => () => void } {
   const rec = {
@@ -55,10 +55,11 @@ describe('watchSidebarContextTab — the optional registration', () => {
     const def = tabs.definitions[0]
     assert.equal(def.id, SIDEBAR_CONTEXT_ID)
     assert.equal(def.kind, SIDEBAR_CONTEXT_KIND, 'the kind is namespaced so a foreign `context` cannot collide')
-    assert.equal(def.title(), 'Context')
+    assert.equal(def.title(), 'E Context')
     assert.equal(def.guide?.length, 1)
+    assert.equal(def.guide?.[0].id, SIDEBAR_CONTEXT_ID, 'the guide entry carries the stable entry identity')
     assert.equal(def.guide?.[0].order, 20, 'after the shipped Files entry (order 10)')
-    assert.equal(def.guide?.[0].title(), 'Context')
+    assert.equal(def.guide?.[0].title(), 'E Context')
     assert.equal(def.guide?.[0].description?.(), DICT_EN['sidebar.guideDescription'])
     assert.equal(typeof def.guide?.[0].icon, 'function', 'the guide capsule carries the bundled emblem')
 
@@ -73,7 +74,7 @@ describe('watchSidebarContextTab — the optional registration', () => {
 
     const m = await mount(h(title[0].component as () => ReactElement))
     assert.equal(query<SVGSVGElement>(m.container, 'svg').getAttribute('width'), '16')
-    assert.equal(text(m.container), 'Context')
+    assert.equal(text(m.container), 'E Context')
     await m.unmount()
 
     ctx.dispose()
@@ -88,8 +89,8 @@ describe('watchSidebarContextTab — the optional registration', () => {
     const tabs = registry()
     ctx.setService('sidebarRightTabs', tabs)
     wire(ctx)
-    assert.equal(tabs.definitions[0].title(), '上下文')
-    assert.equal(tabs.definitions[0].guide?.[0].title(), '上下文')
+    assert.equal(tabs.definitions[0].title(), 'E上下文')
+    assert.equal(tabs.definitions[0].guide?.[0].title(), 'E上下文')
     assert.equal(tabs.definitions[0].guide?.[0].description?.(), DICT_ZH['sidebar.guideDescription'])
     ctx.dispose()
   })

@@ -26,12 +26,12 @@ export function makeDetailFetcher(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ sessionId }),
     })
-    if (!response.ok) throw new Error(`dsh-context: detail route HTTP ${response.status}`)
+    if (!response.ok) throw new Error(`dsh-context-explainer: detail route HTTP ${response.status}`)
     const r = asRecord(await response.json())
-    if (r === null || r.ok !== true) throw new Error('dsh-context: detail read failed')
+    if (r === null || r.ok !== true) throw new Error('dsh-context-explainer: detail read failed')
     if (r.value === null) return null
     const detail = detailOf(r.value)
-    if (detail === null) throw new Error('dsh-context: detail read malformed')
+    if (detail === null) throw new Error('dsh-context-explainer: detail read malformed')
     return detail
   }
 }

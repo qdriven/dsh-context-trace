@@ -1,5 +1,6 @@
-import { memo, useEffect, useRef, useState, type ComponentType, type MouseEvent, type ReactElement } from 'react'
-import { absPathOf, baseNameOf, displayPathOf, glyphOf, surfaceSeqOf, totalsOf } from '../fileActivity'
+import { pathPartsOf } from '@deepseek-ai/dsh-util-workspace-path'
+import { memo, useEffect, useMemo, useRef, useState, type ComponentType, type MouseEvent, type ReactElement } from 'react'
+import { absPathOf, baseNameOf, displayPathOf, displayStyleOf, glyphOf, mergeByDisplay, surfaceSeqOf, totalsOf } from '../fileActivity'
 import type { FileActivity, FileEntry, FileOp, FileOpKind } from '../fileActivity'
 import type { ContextSettings, DefaultFileSort } from '../settings'
 import type { DetailState } from '../timelineSource'
@@ -11,6 +12,14 @@ import { useRowWindow } from './useRowWindow'
 
 export type FileFilter = 'all' | FileOpKind | 'image'
 
+function slashPartsOf(path: string): { directory: string; name: string } {
+  const trimmed = path.endsWith('/') ? path.slice(0, -1) : path
+  const cut = trimmed.lastIndexOf('/')
+  return cut >= 0
+    ? { directory: trimmed.slice(0, cut + 1), name: trimmed.slice(cut + 1) }
+    : { directory: '', name: trimmed }
+}
+
 export interface FileCardProps {
   activity: FileActivity
   workspace?: string
@@ -18,6 +27,7 @@ export interface FileCardProps {
   onFilterFocusHandled?: () => void
   onPreview?: (entry: FileEntry) => boolean
   onOpen?: (absPath: string) => void
+  onPluginPreview?: (entry: FileEntry) => void
   onLocate?: (op: FileOp) => void
   stampOf?: (seq: number) => { turn: number; step: number } | null
   state?: DetailState
@@ -87,7 +97,8 @@ export function makeFileCard(kit: ViewKit, settings: ContextSettings): Component
       name: byName,
       path: byPath,
     }
-    const matched = q === '' ? activity.entries : activity.entries.filter(e => displayOf(e).toLowerCase().includes(q))
+    const entries = useMemo(() => mergeByDisplay(activity.entries, props.workspace), [activity.entries, props.workspace])
+    const matched = q === '' ? entries : entries.filter(e => displayOf(e).toLowerCase().includes(q))
     const shown = matched.filter(e => matches(e, filter)).sort(comparators[sort])
     const matchedTotals = totalsOf(matched)
     const shownTotals = totalsOf(shown)
@@ -236,12 +247,12 @@ export function makeFileCard(kit: ViewKit, settings: ContextSettings): Component
               ))}
             </span>
           </div>
-          {activity.entries.length === 0 && props.state === 'loading' ? (
+          {entries.length === 0 && props.state === 'loading' ? (
             <DetailNote state="loading" className="lc-empty lc-lane" />
-          ) : activity.entries.length === 0 && props.state === 'failed' && props.onRetry !== undefined ? (
+          ) : entries.length === 0 && props.state === 'failed' && props.onRetry !== undefined ? (
             <DetailNote state="failed" onRetry={props.onRetry} className="lc-empty lc-lane" />
           ) : shown.length === 0 ? (
-            <div className="lc-empty lc-lane">{t(activity.entries.length === 0 ? 'files.empty' : 'files.noMatch')}</div>
+            <div className="lc-empty lc-lane">{t(entries.length === 0 ? 'files.empty' : 'files.noMatch')}</div>
           ) : (
             <div className="lc-fa-list" ref={listRef}>
               {rowRange.from > 0 ? <div className="lc-row-pad" style={{ height: Math.max(0, rowRange.from * rowPitch - rowGap) }} aria-hidden="true" /> : null}
@@ -249,10 +260,10 @@ export function makeFileCard(kit: ViewKit, settings: ContextSettings): Component
                 const open = openPath === e.path
                 const alt = (rowRange.from + i) % 2 === 1
                 const display = displayOf(e)
-                const trimmed = display.endsWith('/') ? display.slice(0, -1) : display
-                const slash = trimmed.lastIndexOf('/')
-                const dir = slash >= 0 ? trimmed.slice(0, slash + 1) : ''
-                const base = slash >= 0 ? trimmed.slice(slash + 1) : trimmed
+                const windows = e.pattern !== true && displayStyleOf(e.path, props.workspace) === 'windows'
+                const { directory: dir, name: base } = windows || !display.includes('\\')
+                  ? pathPartsOf(display)
+                  : slashPartsOf(display)
                 const glyph = glyphOf(e.path, e.form)
                 const abs = e.pattern === true ? undefined : absPathOf(e.path, props.workspace)
                 const previewable = props.onPreview !== undefined && e.pattern !== true && e.form !== 'dir'
@@ -294,8 +305,18 @@ export function makeFileCard(kit: ViewKit, settings: ContextSettings): Component
                           : <b>{base}</b>}
                       </span>
                       {e.reads > 0 ? (
-                        <span className="lc-fa-badge lc-fa-b-read" title={t('files.kind.read')}><i />{fmt(e.reads)}</span>
+                                            <span className="lc-fa-badge lc-fa-b-read" title={t('files.kind.read')}><i />{fmt(e.reads)}</span>
                       ) : null}
+                      {props.onPluginPreview === undefined ? null : (
+                        <span
+                          role="button"
+                          tabIndex={0}
+                          className="lc-fa-zoom lc-gran-btn"
+                          title={t('files.pluginPreview')}
+                          onClick={(ev) => { ev.stopPropagation(); props.onPluginPreview?.(e) }}
+                          onKeyDown={(ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.stopPropagation(); props.onPluginPreview?.(e) } }}
+                        >⛶</span>
+                      )}
                       {e.writes > 0 ? (
                         <span className="lc-fa-badge lc-fa-b-write" title={t('files.kind.write')}><i />{fmt(e.writes)}</span>
                       ) : null}

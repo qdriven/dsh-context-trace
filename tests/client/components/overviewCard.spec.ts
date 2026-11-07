@@ -105,29 +105,29 @@ describe('OverviewCard', () => {
 
   test('the breadcrumb shows group and project, deduping a same-named workspace and degrading per part', async () => {
     const m = await mount(h(Card, {
-      row: rowOf({ cwd: '/Users/bw/dev/dsh-context' }),
+      row: rowOf({ cwd: '/Users/bw/dev/dsh-context-explainer' }),
       group: 'workspace-one',
       costLabel: '—',
       now: NOW,
       onOpen: () => {},
     }))
     const crumb = query(m.container, '.lc-ov-session-crumb')
-    assert.equal(crumb.getAttribute('title'), '/Users/bw/dev/dsh-context')
+    assert.equal(crumb.getAttribute('title'), '/Users/bw/dev/dsh-context-explainer')
     assert.equal(query(m.container, '.lc-ov-crumb-group').textContent, 'workspace-one')
     assert.equal(query(m.container, '.lc-ov-crumb-sep').textContent, '/')
-    assert.equal(query(m.container, '.lc-ov-crumb-project').textContent, 'dsh-context')
+    assert.equal(query(m.container, '.lc-ov-crumb-project').textContent, 'dsh-context-explainer')
     await m.unmount()
 
     const same = await mount(h(Card, {
-      row: rowOf({ cwd: '/Users/bw/dev/dsh-context' }),
-      group: 'dsh-context',
+      row: rowOf({ cwd: '/Users/bw/dev/dsh-context-explainer' }),
+      group: 'dsh-context-explainer',
       costLabel: '—',
       now: NOW,
       onOpen: () => {},
     }))
     assert.equal(queryAll(same.container, '.lc-ov-crumb-group').length, 0)
     assert.equal(queryAll(same.container, '.lc-ov-crumb-sep').length, 0)
-    assert.equal(query(same.container, '.lc-ov-crumb-project').textContent, 'dsh-context')
+    assert.equal(query(same.container, '.lc-ov-crumb-project').textContent, 'dsh-context-explainer')
     await same.unmount()
 
     const groupOnly = await mount(h(Card, { row: rowOf(), group: 'workspace-one', costLabel: '—', now: NOW, onOpen: () => {} }))

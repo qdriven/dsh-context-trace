@@ -70,8 +70,8 @@ describe('fetchLatestVersion', () => {
       const { fetchLatestVersion } = await freshModule()
       assert.equal(await fetchLatestVersion(), expected)
       assert.deepEqual(urls, [
-        'https://registry.npmjs.org/dsh-context/latest',
-        'https://registry.npmmirror.com/dsh-context/latest',
+        'https://registry.npmjs.org/dsh-context-explainer/latest',
+        'https://registry.npmmirror.com/dsh-context-explainer/latest',
       ])
     }
   })

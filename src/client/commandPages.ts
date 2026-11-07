@@ -66,12 +66,12 @@ export function makeCommandPager(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ sessionId, beforeSeq, ...(limit === undefined ? {} : { limit }) }),
     })
-    if (!response.ok) throw new Error(`dsh-context: commands route HTTP ${response.status}`)
+    if (!response.ok) throw new Error(`dsh-context-explainer: commands route HTTP ${response.status}`)
     const data = asRecord(await response.json())
-    if (data === null || data.ok !== true) throw new Error('dsh-context: command page read failed')
+    if (data === null || data.ok !== true) throw new Error('dsh-context-explainer: command page read failed')
     if (data.value === null) return null
     const page = commandPageOf(data.value)
-    if (page === null) throw new Error('dsh-context: command page read malformed')
+    if (page === null) throw new Error('dsh-context-explainer: command page read malformed')
     return page
   }
 }

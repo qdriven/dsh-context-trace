@@ -17,7 +17,7 @@ async function importMeta(): Promise<typeof import('../../src/client/meta')> {
 describe('meta', () => {
   test('without build defines the dev/test fallbacks apply', async () => {
     const meta = await importMeta()
-    assert.equal(meta.PLUGIN_NAME, 'dsh-context')
+    assert.equal(meta.PLUGIN_NAME, 'dsh-context-explainer')
     assert.equal(meta.PLUGIN_VERSION, '0.0.0-dev')
     assert.equal(meta.PLUGIN_REPO, 'https://github.com/bowenliang123/dsh-context')
     assert.equal(meta.PLUGIN_REPO_SHORT, 'bowenliang123/dsh-context')

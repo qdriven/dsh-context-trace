@@ -9,6 +9,7 @@ import { watchCommandPageChannel } from './commandPages'
 import { Config, resolveBounds } from './config'
 import { watchDetailChannel, createDetailGate } from './detail'
 import { createFallbackActivityDefinition, createFallbackHeadersDefinition, createFallbackTimelineDefinition } from './fallback'
+import { watchFileRoute } from './fileRoute'
 import { watchFleetChannel } from './fleet'
 import { createContextHeadersDefinition } from './headers'
 import { watchPromptInjection } from './promptInjection'
@@ -21,7 +22,7 @@ import { createContextTimelineDefinition } from './timeline'
 import { detectHarnessVersion } from './version'
 import { meetsBaseline } from '../shared/version'
 
-export const name = 'dsh-context'
+export const name = 'dsh-context-explainer'
 
 export const inject = ['sessionProjections']
 
@@ -31,6 +32,7 @@ export function apply(ctx: Context, config: Config): void {
   watchBalanceChannel(ctx)
   watchRecomChannel(ctx)
   watchSkillCatalog(ctx)
+  watchFileRoute(ctx)
   watchFleetChannel(ctx, coldReads)
   watchAttachmentChannel(ctx, coldReads)
   const harnessVersion = detectHarnessVersion(ctx)
@@ -40,7 +42,7 @@ export function apply(ctx: Context, config: Config): void {
     ctx.sessionProjections.register(createFallbackActivityDefinition() as never)
     return
   }
-  const attribution = createToolAttribution(ctx)
+  const attribution = createToolAttribution(ctx, harnessVersion)
   watchStepIdentity(ctx)
   const gate = createDetailGate(ctx)
   watchDetailChannel(ctx, resolveBounds(config), coldReads, gate)

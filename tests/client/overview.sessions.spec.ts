@@ -228,7 +228,7 @@ describe('sessionGroupsOf', () => {
     assert.equal(sessionGroupsOf({ items: 'x' }), null, 'items not an array')
     const groups = sessionGroupsOf({
       items: [
-        { title: 'dsh-context', sessionIds: ['a', 'b'] },
+        { title: 'dsh-context-explainer', sessionIds: ['a', 'b'] },
         { title: 'other', sessionIds: ['b', 'c'] },
         { title: '', sessionIds: ['d'] },
         { sessionIds: ['e'] },
@@ -237,7 +237,7 @@ describe('sessionGroupsOf', () => {
         'garbage',
       ],
     })
-    assert.deepEqual(groups, { a: 'dsh-context', b: 'dsh-context', c: 'other', f: 'junk-ids' })
+    assert.deepEqual(groups, { a: 'dsh-context-explainer', b: 'dsh-context-explainer', c: 'other', f: 'junk-ids' })
   })
 })
 
@@ -245,8 +245,8 @@ describe('projectOf', () => {
   test('the basename of the session cwd (both separators), absent without one', () => {
     assert.equal(projectOf(undefined), undefined)
     assert.equal(projectOf(''), undefined)
-    assert.equal(projectOf('/Users/bw/dev/dsh-context'), 'dsh-context')
-    assert.equal(projectOf('/Users/bw/dev/dsh-context/'), 'dsh-context')
+    assert.equal(projectOf('/Users/bw/dev/dsh-context-explainer'), 'dsh-context-explainer')
+    assert.equal(projectOf('/Users/bw/dev/dsh-context-explainer/'), 'dsh-context-explainer')
     assert.equal(projectOf('C:\\dev\\repo'), 'repo')
     assert.equal(projectOf('/'), undefined)
   })
@@ -277,7 +277,7 @@ describe('requestActivityBackfill', () => {
       return { ok: true }
     })
     requestActivityBackfill()
-    assert.deepEqual(calls, [['api/dsh-context/backfill', { method: 'POST' }]])
+    assert.deepEqual(calls, [['api/dsh-context-explainer/backfill', { method: 'POST' }]])
     vi.stubGlobal('fetch', async () => Promise.reject(new Error('route absent')))
     requestActivityBackfill()
     vi.stubGlobal('fetch', () => { throw new Error('hostile transport') })

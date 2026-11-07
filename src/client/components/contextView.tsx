@@ -1,16 +1,16 @@
-import { createElement as h, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactElement } from 'react'
+import { createElement as h, startTransition, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactElement } from 'react'
 import type { Category, ContextEventRecord, RequestRecord, SurfaceNode } from '../../shared/types'
 import { TrendReserved } from './trendReserved'
 import { briefNodes, briefOf } from '../brief'
 import { headlineOf } from '../headline'
 import type { ContextViewProps } from '../services'
-import { conversationNodesOf, headersOf, imageLoaderOf, projectionOf, sessionAddressOf, unsupportedOf } from '../services'
+import { conversationNodesOf, headersOf, imageLoaderOf, projectionOf, seatKeyOf, seatOf, sessionAddressOf, unsupportedOf } from '../services'
 import type { ClientCtx, ConversationNodeLike } from '../services'
 import { makeContentFetcher, makeHeaderFetcher, useHistoryFace } from '../historyPage'
 import { useContextSession } from '../sessionData'
 import { makeDetailNote } from './detailNote'
 import { canOpenPathsOf, openPathVia, openResourceVia, workspaceOf } from '../services'
-import { makeAttachmentOpener } from '../attachmentSource'
+import { makeAttachmentLocator } from '../attachmentSource'
 import { activityOf, activityOfOps, locateStepOf, previewAddressOf, surfaceSeqOf } from '../fileActivity'
 import type { FileEntry, FileOp } from '../fileActivity'
 import { commandsOf, programsOf, tallyOfCommands, viewsOf, surfaceSeqOf as commandSurfaceSeqOf } from '../commands'
@@ -22,6 +22,12 @@ import { IconCompareSplit, IconContextInjection } from '../primitives'
 import type { AgentHeads } from '../agentHeads'
 import { agentSelfOf, providerModelLabelOf } from '../agentTree'
 import { makeContextBrowser } from './browser'
+import { makeFullscreenLayer } from './fullscreenLayer'
+import { useColumnSplit, useEdgeResize } from './columnSplitter'
+import { EMPTY_SCOPE, scopeTimeline, stepsOf as scopeStepsOf, turnsOf, type Scope } from '../scope'
+import { resetLayout } from '../layoutStore'
+import { ZoomOverlay } from './textZoom'
+import { FILE_ROUTE } from '../apiRoutes'
 import type { CatFocus } from './browser'
 import { makeAgentGraph } from './agentGraph'
 import { Donut } from './donut'
@@ -32,6 +38,7 @@ import type { FileFilter } from './fileCard'
 import { makeCommandPanel } from './commandPanel'
 import { makeCommandPager } from '../commandPages'
 import { useCommandLog } from './useCommandLog'
+import { makePluginInfo } from './pluginInfo'
 import { makeUpgradeGate } from './upgradeGate'
 import { makeRequestDetail } from './requestDetail'
 import { countsOfRecords, makeStatsContext, makeSubagentCost, toolTallyOf } from './statsContext'
@@ -85,6 +92,10 @@ export function browserCapOf(cards: readonly { top: number; bottom: number }[]):
   return Number.isFinite(span) && span > 0 ? Math.ceil(span) : null
 }
 
+type TabInfoSeat = () => { tab?: { visible?: boolean }; sidebar?: { expanded?: boolean } }
+
+const NO_TAB_INFO: TabInfoSeat = () => ({ tab: { visible: true } })
+
 export function makeContextView(
   ctx: ClientCtx,
   kit: ViewKit,
@@ -104,22 +115,55 @@ export function makeContextView(
   const StatsContext = makeStatsContext(kit, makeSubagentCost(ctx, heads))
   const StatsTiming = makeStatsTiming(kit, Donut)
   const StatsTokens = makeStatsTokens(kit, Donut)
+  const PluginInfo = makePluginInfo(kit, ctx)
   const UpgradeGate = makeUpgradeGate(kit)
   const DetailNote = makeDetailNote(kit)
   const ContextBrowser = makeContextBrowser(kit, StackedBar, settings)
   const AgentGraph = makeAgentGraph(ctx, kit, heads)
   const ErrorBoundary = makeErrorBoundary(t)
+  const FullscreenLayer = makeFullscreenLayer(kit)
 
   function ContextViewBody(props: ContextViewProps): ReactElement {
     const sessionId = props.sessionId
     const inSidebar = props.host === 'sidebar'
     const { source, data, pressure, breakdown, usage } = useContextSession(props)
     const headers = projectionOf(props, 'contextHeaders', headersOf)
+    const [fsOpen, setFsOpen] = useState(false)
+    const [scope, setScope] = useState<Scope>(EMPTY_SCOPE)
+    const [filePreview, setFilePreview] = useState<{ path: string; text: string; truncated: boolean; loading: boolean; error: string | null } | null>(null)
+    const [browserWidth, setBrowserWidth] = useState<number | null>(null)
+    const headSplit = useColumnSplit('.lc-col', 220)
+    const resizeStats = useEdgeResize('x', 240)
+    const resizeFold = useEdgeResize('x', 300)
+    const splitRootRef = useRef<HTMLDivElement | null>(null)
+    const beginBrowserResize = useCallback((ev: ReactPointerEvent<HTMLDivElement>): void => {
+      const root = splitRootRef.current
+      if (root === null) return
+      ev.preventDefault()
+      const rect = root.getBoundingClientRect()
+      const browserCol = root.querySelector<HTMLElement>('.lc-col-browser')
+      const startWidth = browserCol?.getBoundingClientRect().width ?? 0
+      const startX = ev.clientX
+      const min = 280
+      const onMove = (move: PointerEvent): void => {
+        const next = Math.round(startWidth - (move.clientX - startX))
+        const max = Math.max(min, rect.width - min)
+        setBrowserWidth(Math.min(max, Math.max(min, next)))
+      }
+      const onUp = (): void => {
+        window.removeEventListener('pointermove', onMove)
+        window.removeEventListener('pointerup', onUp)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+      document.body.style.cursor = 'col-resize'
+      document.body.style.userSelect = 'none'
+      window.addEventListener('pointermove', onMove)
+      window.addEventListener('pointerup', onUp)
+    }, [])
     const [selectedSeq, setSelectedSeq] = useState<number | null>(null)
     const [hoveredSeq, setHoveredSeq] = useState<number | null>(null)
     const [hoverTurn, setHoverTurn] = useState<number | null>(null)
-    const [turnFilter, setTurnFilter] = useState<number | null>(null)
-    const [stepFilter, setStepFilter] = useState<number | null>(null)
     const [granularity, setGranularity] = useState<'step' | 'turn'>(() => settings.defaultGranularity())
     const [trendMode, setTrendMode] = useState<'total' | 'delta'>(() => settings.defaultTrendMode())
     const [dna, setDna] = useState(false)
@@ -291,6 +335,15 @@ export function makeContextView(
         : jump === 'answers' ? { cat: 'assistant', kind: 'answer' } : { cat: 'user' })
       revealCard(rootRef.current, '.lc-col-browser')
     }, [handleHover, handleHoverTurn])
+    const onScopePick = useCallback((next: Scope): void => {
+      setScope(next)
+      if (next.turn === null) return
+      hoverLock.current = performance.now() + HOVER_LOCK_MS
+      handleHover(null)
+      handleHoverTurn(null)
+      revealCard(rootRef.current, '[data-lc-trend]')
+    }, [handleHover, handleHoverTurn])
+
     const revealCat = useCallback((cat: Category | 'system' | 'tools', seq: number): void => {
       setCatFocus({ cat, step: seq })
       revealBrowserIfOffscreen(rootRef.current)
@@ -335,30 +388,12 @@ export function makeContextView(
       }
     }, [sessionId])
 
-    const allRequests = data ? data.requests : []
-    const turnOptions = useMemo(() => [...new Set(allRequests.map(r => r.turn ?? 0))].sort((a, b) => a - b), [allRequests])
-    const stepOptions = useMemo(() => (turnFilter === null
-      ? []
-      : [...new Set(allRequests
-        .filter(r => (r.turn ?? 0) === turnFilter)
-        .map(r => r.step ?? 0))].sort((a, b) => a - b)), [allRequests, turnFilter])
-    const isFiltered = turnFilter !== null || stepFilter !== null
-    const requests = useMemo(() => allRequests.filter(r =>
-      (turnFilter === null || (r.turn ?? 0) === turnFilter)
-      && (stepFilter === null || (r.step ?? 0) === stepFilter)), [allRequests, turnFilter, stepFilter])
-    const shownWindow = useMemo(() => {
-      if (!isFiltered || requests.length === 0) return null
-      const first = allRequests.indexOf(requests[0])
-      const last = allRequests.indexOf(requests[requests.length - 1])
-      return {
-        min: first > 0 ? allRequests[first - 1].seq + 1 : 0,
-        max: last + 1 < allRequests.length ? allRequests[last + 1].seq - 1 : Number.MAX_SAFE_INTEGER,
-      }
-    }, [allRequests, requests, isFiltered])
-    const events = (data ? data.events : []).filter(e => shownWindow === null || (e.seq >= shownWindow.min && e.seq <= shownWindow.max))
-    const counts = data === null || isFiltered
-      ? countsOfRecords(requests, events)
-      : (data.counts ?? countsOfRecords(requests, events))
+    const view = useMemo(() => (data === null ? null : scopeTimeline(data, scope)), [data, scope])
+    const requests = view ? view.requests : []
+    const events = view ? view.events : []
+    const counts = view?.counts ?? countsOfRecords(requests, events)
+    const turnOptions = useMemo(() => turnsOf(data?.requests ?? []), [data])
+    const stepOptions = useMemo(() => scopeStepsOf(data?.requests ?? [], scope.turn), [data, scope.turn])
     const kindCounts: Record<string, number | undefined> = { inject: counts.injects, compaction: counts.compactions, prune: counts.prunes }
     const shownEvents = pickedKinds.length === EVENT_KINDS.length ? events : events.filter(e => pickedKinds.includes(e.kind))
     const displayRequests = useMemo(
@@ -385,12 +420,6 @@ export function makeContextView(
     const revealBand = useCallback((seq: number, band: { key: string; cat: Category | 'system' | 'tools' }): void => {
       setNodeFocus({ step: seq, key: band.key, cat: band.cat })
     }, [])
-
-    useEffect(() => {
-      if (selectedSeq === null) return
-      if (requests.some(r => r.seq === selectedSeq)) return
-      setSelectedSeq(null)
-    }, [requests, selectedSeq])
 
     useEffect(() => {
       if (filterFocus === null || !belowFoldMounted) return
@@ -436,7 +465,7 @@ export function makeContextView(
       if (anchor !== null) revealInScrollParent(anchor)
     }, [jumpSeq, data, requests, detailReady])
 
-    const briefList = useMemo(() => (data ? cachedByData(data, 'briefList', () => briefNodes(data)) : []), [data])
+    const briefList = useMemo(() => (view ? cachedByData(view, 'briefList', () => briefNodes(view)) : []), [view])
     const convNodes = conversationNodesOf(props)
     const bySeq = useMemo(() => {
       const m = new Map<number, ConversationNodeLike>()
@@ -468,10 +497,10 @@ export function makeContextView(
     const fileCacheOwner = useMemo(() => ({ data, bySeq }), [data, bySeq])
     const fileActivity = useMemo(
       () => {
-        if (data === null) return activityOf(briefList, convOf, filesBefore)
+        if (view === null) return activityOf(briefList, convOf, filesBefore)
         return cachedByData(fileCacheOwner, `files:${String(filesBefore)}`, () => (
-          data.fileOps !== undefined
-            ? activityOfOps(data.fileOps, data.archive, filesBefore)
+          view.fileOps !== undefined
+            ? activityOfOps(view.fileOps, view.archive, filesBefore)
             : activityOf(briefList, convOf, filesBefore)
         ))
       },
@@ -479,22 +508,18 @@ export function makeContextView(
     )
     const ioTotals = useMemo(
       () => {
-        const totals = (data !== null && data.fileOps !== undefined
-          ? activityOfOps(data.fileOps, data.archive, null)
+        const totals = (view !== null && view.fileOps !== undefined
+          ? activityOfOps(view.fileOps, view.archive, null)
           : activityOf(briefList, convOf, null)).totals
         return { reads: totals.read.ops, writes: totals.write.ops, searches: totals.search.ops, images: totals.image.ops }
       },
       [data, briefList, convOf],
     )
-    const toolTally = useMemo(() => {
-      if (data === null) return []
-      if (shownWindow === null) return cachedByData(data, 'toolTally', () => toolTallyOf(data.nodes))
-      return cachedByData(data, `toolTally:${shownWindow.min}:${String(shownWindow.max)}`, () => toolTallyOf(data.nodes.filter(n => n.seq >= shownWindow.min && n.seq <= shownWindow.max)))
-    }, [data, shownWindow])
+    const toolTally = useMemo(() => (view ? cachedByData(view, 'toolTally', () => toolTallyOf(view.nodes)) : []), [view])
     const commandList = useMemo(() => {
-      if (data === null || data.commands === undefined) return []
-      const records = data.commands
-      return cachedByData(data, 'commands', () => commandsOf(records, data.archive))
+      if (view === null || view.commands === undefined) return []
+      const records = view.commands
+      return cachedByData(view, 'commands', () => commandsOf(records, view.archive))
     }, [data])
     const commandLog = useCommandLog(
       commandList,
@@ -504,17 +529,11 @@ export function makeContextView(
     const fullCommandList = commandLog.records
     const workspace = typeof ctx.get === 'function' ? workspaceOf(ctx, typeof sessionId === 'string' ? sessionId : undefined) : undefined
     const commandBoard = useMemo(() => {
-      const list = isFiltered
-        ? fullCommandList.filter(c => (turnFilter === null || c.turn === turnFilter) && (stepFilter === null || c.step === stepFilter))
-        : fullCommandList
-      if (list.length === 0) return { runs: 0, top: [] as [string, number][] }
-      const stats = isFiltered ? tallyOfCommands(list) : (data?.commandStats ?? tallyOfCommands(list))
-      const top = programsOf(viewsOf(list, workspace)).map(p => [p.name, p.n] as [string, number])
+      if (fullCommandList.length === 0) return { runs: 0, top: [] as [string, number][] }
+      const stats = view?.commandStats ?? tallyOfCommands(fullCommandList)
+      const top = programsOf(viewsOf(fullCommandList, workspace)).map(p => [p.name, p.n] as [string, number])
       return { runs: stats.runs, top }
-    }, [fullCommandList, data, workspace, isFiltered, turnFilter, stepFilter])
-    const panelCommands = useMemo(() => (isFiltered
-      ? fullCommandList.filter(c => (turnFilter === null || c.turn === turnFilter) && (stepFilter === null || c.step === stepFilter))
-      : fullCommandList), [fullCommandList, isFiltered, turnFilter, stepFilter])
+    }, [fullCommandList, data, workspace])
     const hasCommands = fullCommandList.length > 0
     const [canOpenPaths, setCanOpenPaths] = useState(false)
     useEffect(() => {
@@ -522,25 +541,55 @@ export function makeContextView(
       void canOpenPathsOf(ctx).then((can) => { if (live) setCanOpenPaths(can) })
       return () => { live = false }
     }, [ctx])
-    const fileOpener = useMemo(
+    const dshFileOpener = useMemo(
       () => (canOpenPaths ? openPathVia(ctx) : undefined),
       [canOpenPaths, ctx],
     )
     const previewOpener = useMemo(() => openResourceVia(ctx), [ctx])
     const sessionKey = typeof sessionId === 'string' ? sessionId : undefined
-    const previewFile = useMemo(
-      () => previewOpener === undefined
-        ? undefined
-        : (entry: FileEntry): boolean => {
-          const address = previewAddressOf(entry.path, entry.form, entry.pattern, sessionKey, workspace)
-          return address !== undefined && previewOpener(address)
-        },
-      [previewOpener, sessionKey, workspace],
+    const openFilePreviewPath = useCallback((path: string): void => {
+      setFilePreview({ path, text: '', truncated: false, loading: true, error: null })
+      void (async () => {
+        try {
+          const response = await fetch(FILE_ROUTE, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ path }),
+          })
+          const payload = await response.json() as { ok?: unknown; text?: unknown; truncated?: unknown; error?: { message?: unknown } } | null
+          if (payload?.ok === true && typeof payload.text === 'string') {
+            setFilePreview({ path, text: payload.text, truncated: payload.truncated === true, loading: false, error: null })
+            return
+          }
+          const message = typeof payload?.error?.message === 'string' ? payload.error.message : 'preview failed'
+          setFilePreview({ path, text: '', truncated: false, loading: false, error: message })
+        } catch (error) {
+          setFilePreview({ path, text: '', truncated: false, loading: false, error: error instanceof Error ? error.message : 'preview failed' })
+        }
+      })()
+    }, [])
+    const previewFile = useCallback((entry: FileEntry): boolean => {
+      openFilePreviewPath(entry.path)
+      return true
+    }, [openFilePreviewPath])
+    const fileOpener = useCallback((path: string): void => {
+      openFilePreviewPath(path)
+    }, [openFilePreviewPath])
+    const attachmentLocator = useMemo(
+      () => makeAttachmentLocator(typeof sessionId === 'string' ? sessionId : undefined),
+      [sessionId],
     )
-    const openAttachment = useMemo(
-      () => makeAttachmentOpener(ctx, typeof sessionId === 'string' ? sessionId : undefined, workspace),
-      [ctx, sessionId, workspace],
-    )
+    const openAttachment = useCallback(async (attachment: Parameters<NonNullable<typeof attachmentLocator>>[0]): Promise<boolean> => {
+      if (attachmentLocator === undefined) return false
+      const path = await attachmentLocator(attachment)
+      if (path === null) return false
+      if (attachment.kind === 'image') {
+        dshFileOpener?.(path)
+        return true
+      }
+      openFilePreviewPath(path)
+      return true
+    }, [attachmentLocator, openFilePreviewPath])
     const locateFileOp = useCallback((op: FileOp): void => {
       const seq = surfaceSeqOf(op)
       const step = locateStepOf(requests, seq, op.gone)
@@ -780,7 +829,7 @@ export function makeContextView(
     )
     const browserCard = (
       <ContextBrowser
-        data={data}
+        data={view ?? data}
         headers={headers}
         convNodes={convNodes}
         fetchContent={fetchContent}
@@ -804,11 +853,35 @@ export function makeContextView(
       />
     )
 
+    const resetAllLayout = (): void => {
+      setBrowserWidth(null)
+      resetLayout()
+    }
+
     return (
-      <div className="lc-root" ref={rootRef}>
+      <div className={'lc-root' + (fsOpen ? ' lc-fs-expanded' : '')} ref={rootRef} style={inSidebar ? { position: 'relative' } : undefined}>
+        {inSidebar ? (
+          <div className="lc-fs-open-group">
+            <button type="button" className="lc-gran-btn lc-fs-open" onClick={resetAllLayout} title={t('layout.reset')}>
+              {t('layout.reset')}
+            </button>
+            <button type="button" className="lc-gran-btn lc-fs-open" onClick={() => setFsOpen(true)} title={t('fs.open')}>
+              ⛶ {t('fs.open')}
+            </button>
+          </div>
+        ) : (
+          <div className="lc-fs-toolbar">
+            <button type="button" className="lc-gran-btn lc-fs-trigger" onClick={resetAllLayout} title={t('layout.reset')}>
+              {t('layout.reset')}
+            </button>
+            <button type="button" className="lc-gran-btn lc-fs-trigger" onClick={() => setFsOpen(true)} title={t('fs.open')}>
+              ⛶ {t('fs.open')}
+            </button>
+          </div>
+        )}
 
         {inSidebar ? null : (
-          <div className="lc-cols lc-head">
+          <div className="lc-cols lc-head" ref={headSplit.rootRef}>
             <StatsContext counts={counts} humanInputs={data.humanInputs} answers={data.answers} toolCalls={data.toolCalls}
               files={ioTotals} tools={toolTally} commands={commandBoard}
               cost={data.cost} locale={activeLocale} sessionId={typeof sessionId === 'string' ? sessionId : undefined}
@@ -818,28 +891,53 @@ export function makeContextView(
               onCommandPick={hasCommands ? setCommandFocus : undefined}
               onCommandMore={hasCommands ? onCommandMore : undefined}
               onEventsClick={onEventsClick}
-              turnFilter={turnFilter} stepFilter={stepFilter}
-              turnOptions={turnOptions} stepOptions={stepOptions}
-              stepsHint={turnFilter === null}
-              onTurnPick={(n) => { setTurnFilter(n); setStepFilter(null) }}
-              onStepPick={setStepFilter}
-              filterActive={isFiltered}
-              onFilterClear={() => { setTurnFilter(null); setStepFilter(null) }} />
+              scope={scope}
+              turns={turnOptions}
+              steps={stepOptions}
+              onScope={onScopePick} />
+                        <div
+              className="lc-col-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              title={t('fs.resize')}
+              onPointerDown={headSplit.onPointerDown}
+            />
+            <div
+              className="lc-col"
+              style={headSplit.width !== null ? { flex: '0 0 auto', width: headSplit.width, minWidth: 240 } : undefined}
+            >
+              <PluginInfo />
+            </div>
           </div>
         )}
         <div className="lc-cols lc-head">
           <StatsTokens usage={usage} current={data.current} breakdown={breakdown}
             generatedReasoning={data.generatedReasoning} generatedAnswerTokens={data.generatedAnswerTokens}
             generatedCallTokens={data.generatedCallTokens} />
+          <div
+            className="lc-row-resizer lc-row-resizer-x"
+            role="separator"
+            aria-orientation="vertical"
+            title={t('fs.resize')}
+            onPointerDown={resizeStats}
+          />
           <StatsTiming timing={data.timing ?? null} spans={data.spans} locale={activeLocale} />
         </div>
 
-        <div className="lc-cols lc-cols-main">
+        <div className="lc-cols lc-cols-main" ref={splitRootRef}>
           <div className="lc-col flex-1 min-w-[min(360px,100%)]" ref={leftColRef}>{compositionCard}{trendCard}</div>
           <div
+            className="lc-col-resizer"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label={t('fs.resize')}
+            title={t('fs.resize')}
+            onPointerDown={beginBrowserResize}
+          />
+          <div
             ref={browserRef}
-            className="lc-col lc-col-browser flex-1 min-w-[min(360px,100%)]"
-            style={browserCap !== null ? { maxHeight: browserCap } : undefined}
+            className="lc-col lc-col-browser"
+            style={browserWidth !== null ? { flex: '0 0 auto', width: browserWidth, maxHeight: browserCap ?? undefined } : { flex: '1', minWidth: 'min(360px,100%)', maxHeight: browserCap ?? undefined }}
           >{browserMounted ? browserCard : <div className="lc-card lc-deferred-skeleton" style={{ height: '100%', minHeight: 320 }} aria-hidden="true" />}</div>
         </div>
 
@@ -876,8 +974,15 @@ export function makeContextView(
                 canEventFocus={canEventFocus}
               />
             </div>
+            <div
+              className="lc-row-resizer lc-row-resizer-x"
+              role="separator"
+              aria-orientation="vertical"
+              title={t('fs.resize')}
+              onPointerDown={resizeFold}
+            />
             <FileCard activity={fileActivity} workspace={workspace} stampOf={opStampOf}
-              onPreview={previewFile} onOpen={fileOpener} onLocate={locateFileOp}
+              onPreview={previewFile} onOpen={fileOpener} onPluginPreview={(entry) => { openFilePreviewPath(entry.path) }} onLocate={locateFileOp}
               filterFocus={filterFocus} onFilterFocusHandled={clearFilterFocus}
               state={source.detailState} onRetry={source.retryDetail} />
           </>) : (<>
@@ -888,8 +993,7 @@ export function makeContextView(
 
         <div className="lc-cols" ref={cmdsRef}>
           {cmdsMounted ? (
-            <CommandPanel key={sessionId} commands={panelCommands}
-              stats={isFiltered ? tallyOfCommands(panelCommands) : data.commandStats} floor={data.commandsFloor}
+            <CommandPanel key={sessionId} commands={fullCommandList} stats={data.commandStats} floor={data.commandsFloor}
               fill={commandLog}
               workspace={workspace} stampOf={opStampOf} onLocate={locateCommand} fetchContent={fetchContent}
               focusProgram={commandFocus} onFocusProgramHandled={clearCommandFocus}
@@ -912,24 +1016,50 @@ export function makeContextView(
         {gate !== null && (
           <UpgradeGate sessionId={sessionId} current={gate.current} minimum={gate.minimum} />
         )}
+        <ZoomOverlay
+          open={filePreview !== null}
+          label={filePreview !== null ? filePreview.path : ''}
+          title={t('fs.open')}
+          tools={filePreview === null ? undefined : (
+            <>
+              {filePreview.loading || filePreview.error !== null ? null : (
+                <button
+                  type="button"
+                  className="lc-gran-btn"
+                  title={t('rich.copy')}
+                  onClick={() => { void navigator.clipboard?.writeText(filePreview.text).catch(() => {}) }}
+                >⧉</button>
+              )}
+              <button
+                type="button"
+                className="lc-gran-btn"
+                onClick={() => { dshFileOpener?.(filePreview.path) }}
+              >{t('files.openExternal')}</button>
+            </>
+          )}
+          onClose={() => { setFilePreview(null) }}
+        >
+          {filePreview === null ? null : filePreview.loading ? (
+            <div className="lc-empty">{t('loading')}</div>
+          ) : filePreview.error !== null ? (
+            <div className="lc-br-note">{filePreview.error}</div>
+          ) : (
+            <pre className="lc-zoom-pre">{filePreview.text + (filePreview.truncated ? '\n…' : '')}</pre>
+          )}
+        </ZoomOverlay>
+                <FullscreenLayer open={fsOpen} onClose={() => { setFsOpen(false) }} targetRef={rootRef} />
       </div>
     )
   }
 
   function ContextViewGate(props: ContextViewProps): ReactElement {
-    if (props.host === 'sidebar') {
-      const useTabInfo = (props as ContextViewProps & {
-        useTabInfo?: () => { tab?: { visible?: boolean }; sidebar?: { expanded?: boolean } }
-      }).useTabInfo
-      if (typeof useTabInfo === 'function') {
-        const info = useTabInfo()
-        if (info.tab?.visible !== true) return h('div', { className: 'lc-root' })
-      }
-    }
+    const useTabInfo = (props as ContextViewProps & { useTabInfo?: TabInfoSeat }).useTabInfo
+    const info = seatOf(useTabInfo, NO_TAB_INFO)()
+    if (props.host === 'sidebar' && info.tab?.visible !== true) return h('div', { className: 'lc-root' })
     return h(ContextViewBody, props)
   }
 
   return function ContextView(props: ContextViewProps): ReactElement {
-    return h(ErrorBoundary, null, h(ContextViewGate, props))
+    return h(ErrorBoundary, null, h(ContextViewGate, { ...props, key: seatKeyOf(props) }))
   }
 }

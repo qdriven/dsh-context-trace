@@ -1,10 +1,11 @@
 import { ContextIcon, makeContextTabTitle } from './icon'
 import type { ClientCtx, ContextViewProps, SidebarTabsFace } from './services'
 import type { Translate } from './i18n'
+import { SIDEBAR_TAB_ID, SIDEBAR_TAB_SLOT } from './ids'
 
-export const SIDEBAR_CONTEXT_ID = 'dsh-context'
+export const SIDEBAR_CONTEXT_ID = SIDEBAR_TAB_ID
 
-export const SIDEBAR_CONTEXT_KIND = 'dsh-context'
+export const SIDEBAR_CONTEXT_KIND = SIDEBAR_TAB_ID
 
 const GUIDE_ORDER = 20
 
@@ -28,18 +29,19 @@ export function watchSidebarContextTab(
         kind: SIDEBAR_CONTEXT_KIND,
         title: () => t('tab.context'),
         guide: [{
+          id: SIDEBAR_CONTEXT_ID,
           order: GUIDE_ORDER,
           title: () => t('tab.context'),
           description: () => t('sidebar.guideDescription'),
           icon: ContextIcon,
         }],
       }))
-      own(injected.slots.inject('sidebar.right.pane.tab', () => injected.slots.register(
-        { name: 'sidebar.right.pane.tab', key: SIDEBAR_CONTEXT_ID, locale: ns },
+      own(injected.slots.inject(SIDEBAR_TAB_SLOT, () => injected.slots.register(
+        { name: SIDEBAR_TAB_SLOT, key: SIDEBAR_CONTEXT_ID, locale: ns },
         (props: { sessionId?: string } & Record<string, unknown>) => view({ ...props, host: 'sidebar' }),
       )))
-      own(injected.slots.inject('sidebar.right.pane.tab.title', () => injected.slots.register(
-        { name: 'sidebar.right.pane.tab.title', key: SIDEBAR_CONTEXT_ID },
+      own(injected.slots.inject(SIDEBAR_TAB_SLOT + '.title', () => injected.slots.register(
+        { name: SIDEBAR_TAB_SLOT + '.title', key: SIDEBAR_CONTEXT_ID },
         makeContextTabTitle(t),
       )))
     } catch {

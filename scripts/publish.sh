@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Publishes dsh-context to npm as the authenticated user.
+# Publishes dsh-context-explainer to npm as the authenticated user.
 #
 # Usage: NPM_TOKEN=<token> pnpm run release [patch|minor]; 2FA accounts also pass NPM_OTP (or use an Automation
 # token). The token comes from the environment only, never a file — export it to keep it out of shell history.

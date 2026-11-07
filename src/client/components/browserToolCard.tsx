@@ -1,4 +1,7 @@
 import { useMemo, useState, type ReactElement, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
+import { useEscapeClose } from './escapeClose'
+import { useTextZoom, ZoomButton, ZoomOverlay } from './textZoom'
 import type { SurfaceNode } from '../../shared/types'
 import type { ConversationNodeLike } from '../services'
 import { parseCallArgs } from '../callSummary'
@@ -42,27 +45,74 @@ export function TextSection(props: {
   text: string
   rich: RichKit
   lines: (n: number) => string
+  zoomTitle?: string
 }): ReactElement {
   const { rich } = props
-  const [mode, setMode, json] = rich.useRichMode(props.text)
+  const [mode, pickMode, jsonReady] = rich.useRichMode(props.text)
   const find = rich.useRichFind(props.text, mode)
   const lineCount = useMemo(() => lineCountOf(props.text), [props.text])
-  return (
-    <Section
-      label={props.label}
-      foldHead
-      actions={<>
-        <rich.RichSwitch mode={mode} json={json} onPick={setMode} />
-        <rich.RichCopy text={props.text} />
-        {find.button}
-      </>}
-      meta={<span className="lc-ts-card-meta">{props.lines(lineCount)}</span>}
-    >
+  const [zoom, setZoom] = useState(false)
+  useEscapeClose(zoom, () => { setZoom(false) })
+  const zoomTitle = props.zoomTitle ?? 'Zoom'
+  const zoomButton = (
+    <button
+      type="button"
+      className={'lc-ts-zoom lc-gran-btn' + (zoom ? ' lc-gran-on' : '')}
+      title={zoomTitle}
+      aria-label={zoomTitle}
+      aria-pressed={zoom}
+      onClick={() => { setZoom(true) }}
+    >⛶</button>
+  )
+  const tools = (
+    <>
+      <rich.RichSwitch mode={mode} json={jsonReady} onPick={pickMode} />
+      <rich.RichCopy text={props.text} />
+      {find.button}
+      {zoomButton}
+    </>
+  )
+  const body = (
+    <>
       {find.bar}
       <div key={find.bodyKey} ref={find.bodyRef}>
         <rich.RichText text={props.text} mode={mode} />
       </div>
-    </Section>
+    </>
+  )
+  const meta = <span className="lc-ts-card-meta">{props.lines(lineCount)}</span>
+  return (
+    <>
+      <Section
+        label={props.label}
+        foldHead
+        actions={tools}
+        meta={meta}
+      >
+        {zoom ? null : body}
+      </Section>
+      {zoom ? createPortal(
+        <div className="lc-text-zoom" role="dialog" aria-modal="true" aria-label={props.label}>
+          <div className="lc-text-zoom-bar">
+            <span className="lc-text-zoom-title">{props.label}</span>
+            {meta}
+            <span className="lc-text-zoom-tools">
+              <rich.RichSwitch mode={mode} json={jsonReady} onPick={pickMode} />
+              <rich.RichCopy text={props.text} />
+              {find.button}
+              <button
+                type="button"
+                className="lc-gran-btn lc-text-zoom-close"
+                onClick={() => { setZoom(false) }}
+                title={props.label}
+              >✕</button>
+            </span>
+          </div>
+          <div className="lc-text-zoom-body">{body}</div>
+        </div>,
+        document.body,
+      ) : null}
+    </>
   )
 }
 
@@ -114,6 +164,7 @@ export function ToolSchema(props: {
     empty: string
     show: string
     hide: string
+    zoom?: string
   }
 }): ReactElement {
   const { rich } = props
@@ -142,7 +193,7 @@ export function ToolSchema(props: {
   return (
     <>
       {props.description !== undefined ? (
-        <TextSection label={props.labels.desc} text={props.description} rich={rich} lines={props.lines} />
+        <TextSection label={props.labels.desc} text={props.description} rich={rich} lines={props.lines} zoomTitle={props.labels.zoom} />
       ) : null}
       {params !== null && rows.length > 0 ? (
         <Section label={props.labels.title} count={rows.length}>
@@ -267,6 +318,16 @@ export function toolErrOf(node: SurfaceNode, conv: ConversationNodeLike | undefi
   return { err, exit: tail.exit }
 }
 
+function argTextOf(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (value === undefined) return ''
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
 export function ToolCallCard(props: {
   name: string
   argsRaw: unknown
@@ -274,18 +335,39 @@ export function ToolCallCard(props: {
   status?: ReactNode
 }): ReactElement {
   const args = useMemo(() => parseCallArgs(props.argsRaw), [props.argsRaw])
+  const entries = useMemo(() => {
+    if (args !== null) return Object.keys(args).map(key => ({ key, text: argTextOf(args[key]) }))
+    return typeof props.argsRaw === 'string' && props.argsRaw !== '' ? [{ key: 'args', text: props.argsRaw }] : []
+  }, [args, props.argsRaw])
+  const zoom = useTextZoom()
+  const combined = useMemo(() => entries.map(entry => entry.key + '\n' + entry.text).join('\n\n'), [entries])
   return (
-    <Section
-      label={(props.arrow ?? '→') + ' ' + props.name}
-      labelClass="lc-ts-call-name"
-      meta={props.status}
-    >
-      {args !== null
-        ? Object.keys(args).map(k => <CallArgRow key={k} name={k} value={args[k]} />)
-        : typeof props.argsRaw === 'string' && props.argsRaw !== ''
-          ? <pre className="lc-ts-desc-body lc-br-dim">{props.argsRaw}</pre>
-          : null}
-    </Section>
+    <>
+      <Section
+        label={(props.arrow ?? '→') + ' ' + props.name}
+        labelClass="lc-ts-call-name"
+        meta={entries.length === 0 ? props.status : <>{props.status}<ZoomButton open={zoom.open} title={props.name} onOpen={zoom.openZoom} /></>}
+      >
+        {args !== null
+          ? Object.keys(args).map(k => <CallArgRow key={k} name={k} value={args[k]} />)
+          : typeof props.argsRaw === 'string' && props.argsRaw !== ''
+            ? <pre className="lc-ts-desc-body lc-br-dim">{props.argsRaw}</pre>
+            : null}
+      </Section>
+      <ZoomOverlay
+        open={zoom.open}
+        label={props.name}
+        title={props.name}
+        tools={<button
+          type="button"
+          className="lc-gran-btn lc-zoom-copy"
+          onClick={() => { void navigator.clipboard?.writeText(combined).catch(() => {}) }}
+        >⧉</button>}
+        onClose={zoom.closeZoom}
+      >
+        <pre className="lc-zoom-pre">{combined}</pre>
+      </ZoomOverlay>
+    </>
   )
 }
 

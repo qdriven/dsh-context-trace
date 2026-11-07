@@ -51,7 +51,7 @@ describe('openContextSidebar', () => {
     const opened: string[] = []
     const ctx = new TestClientCtx({ services: { sidebarRight: { openTab: (kind: string) => { opened.push(kind) } } } })
     assert.equal(openContextSidebar(asClientCtx(ctx)), true)
-    assert.deepEqual(opened, ['dsh-context'])
+    assert.deepEqual(opened, ['dsh-context-explainer'])
 
     assert.equal(openContextSidebar(asClientCtx(new TestClientCtx())), false)
     assert.equal(openContextSidebar(asClientCtx(new TestClientCtx({ services: { sidebarRight: {} } }))), false)
@@ -87,21 +87,21 @@ describe('activateViewTab', () => {
       return counted
     }
     const chat = mk('Chat', true)
-    const context = mk('Context', false)
+    const context = mk('E Context', false)
     const trajectory = mk('Trajectory', false)
     document.body.appendChild(bar)
     try {
-      assert.equal(activateViewTab('Context'), true)
+      assert.equal(activateViewTab('E Context'), true)
       assert.equal(context.__clicks(), 1)
       assert.equal(chat.__clicks(), 0)
 
       context.setAttribute('aria-selected', 'true')
-      assert.equal(activateViewTab('Context'), true)
+      assert.equal(activateViewTab('E Context'), true)
       assert.equal(context.__clicks(), 1)
 
       context.setAttribute('aria-selected', 'false')
-      context.textContent = '  Context '
-      assert.equal(activateViewTab('Context'), true)
+      context.textContent = '  E Context '
+      assert.equal(activateViewTab('E Context'), true)
       assert.equal(context.__clicks(), 2)
 
       assert.equal(activateViewTab('Missing'), false)

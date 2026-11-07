@@ -44,8 +44,8 @@ describe('watchPromptInjection', () => {
     const face = fakeSystemPrompt()
     watchPromptInjection(ctxWith(face), { promptPrefix: 'FIRST', promptSuffix: 'LAST' } as never)
     assert.deepEqual(face.registered.map(section => section.name), [
-      'dsh-context:prompt-prefix',
-      'dsh-context:prompt-suffix',
+      'dsh-context-explainer:prompt-prefix',
+      'dsh-context-explainer:prompt-suffix',
     ])
     const [prefix, suffix] = face.registered
     assert.equal(prefix.order, -2000, 'ahead of HARNESS_IDENTITY, anchored through the harness registry')

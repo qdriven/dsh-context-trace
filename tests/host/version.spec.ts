@@ -26,7 +26,7 @@ function runningResolver(home: string, root: string = HOMES): (specifier: string
 
 const NO_RUNNING = (): string => { throw new Error('no running module tree') }
 
-const ELSEWHERE = join(tmpdir(), 'dsh-context-plugin-root')
+const ELSEWHERE = join(tmpdir(), 'dsh-context-explainer-plugin-root')
 
 const fixedUrl = (url: string) => (): string => url
 
@@ -61,7 +61,7 @@ function shadow(home: string, packageName: string): void {
 }
 
 beforeAll(() => {
-  scratch = mkdtempSync(join(tmpdir(), 'dsh-context-version-'))
+  scratch = mkdtempSync(join(tmpdir(), 'dsh-context-explainer-version-'))
   shadow('library-only', '@deepseek-ai/dsh')
   writeScratchHome('library-only', '@deepseek-ai/dsh-session-projection',
     JSON.stringify({ name: '@deepseek-ai/dsh-session-projection', version: '0.1.1-rc.2' }))

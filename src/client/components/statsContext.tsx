@@ -161,15 +161,10 @@ interface StatsContextProps {
   cost?: SessionCostUsage
   locale: string
   sessionId?: string
-  turnFilter?: number | null
-  stepFilter?: number | null
-  turnOptions?: readonly number[]
-  stepOptions?: readonly number[]
-  stepsHint?: boolean
-  onTurnPick?: (turn: number | null) => void
-  onStepPick?: (step: number | null) => void
-  filterActive?: boolean
-  onFilterClear?: () => void
+  scope?: { turn: number | null; step: number | null }
+  turns?: readonly number[]
+  steps?: readonly { turn: number; step: number; seq: number }[]
+  onScope?: (scope: { turn: number | null; step: number | null }) => void
 }
 
 const IO_COLOR: Record<'inputs' | 'read' | 'write' | 'search' | 'image', string> = {
@@ -317,48 +312,6 @@ export function makeStatsContext(
     const usage = mergeCostUsage(props.cost, subUsage) ?? undefined
     const cost = estimateSessionCost(usage, book, currency)
     const subCost = estimateSessionCost(subUsage, book, currency)
-    const [openMenu, setOpenMenu] = useState<'turns' | 'steps' | null>(null)
-    const filterFigure = (key: 'turns' | 'steps', value: number, label: string): ReactElement => {
-      const options = (key === 'turns' ? props.turnOptions : props.stepOptions) ?? []
-      const picked = (key === 'turns' ? props.turnFilter : props.stepFilter) ?? null
-      const onPick = key === 'turns' ? props.onTurnPick : props.onStepPick
-      const stepsLocked = key === 'steps' && (props.turnFilter ?? null) === null
-      const open = openMenu === key
-      const itemLabel = (n: number): string => (key === 'turns'
-        ? `${t('trace.turn')} ${n}`
-        : `${t('trace.stepIn')} ${n}`)
-      const allLabel = key === 'turns' ? t('trace.filterAllTurns') : t('trace.filterAllSteps')
-      return (
-        <span key={key} className="lc-core-kv lc-core-kv-filterwrap">
-          <button
-            type="button"
-            title={stepsLocked ? t('trace.filterStepsHint') : undefined}
-            className={'lc-core-kv lc-core-kv-btn lc-core-kv-filter' + (picked !== null ? ' lc-core-kv-filter-on' : '')}
-            onClick={() => { if (!stepsLocked) setOpenMenu(open ? null : key) }}
-          >
-            <b>{fmt(value)}</b>
-            <i>{label}{picked !== null ? ` · ${itemLabel(picked)}` : ''}</i>
-          </button>
-          {open && onPick !== undefined ? (
-            <span className="lc-core-kv-menu">
-              <button type="button" className="lc-core-kv-menu-item" onClick={() => { onPick(null); setOpenMenu(null) }}>
-                {allLabel}
-              </button>
-              {options.map(n => (
-                <button
-                  key={n}
-                  type="button"
-                  className={'lc-core-kv-menu-item' + (picked === n ? ' lc-core-kv-menu-item-on' : '')}
-                  onClick={() => { onPick(n); setOpenMenu(null) }}
-                >
-                  {itemLabel(n)}
-                </button>
-              ))}
-            </span>
-          ) : null}
-        </span>
-      )
-    }
     const fmtRate = (usd: number): string => formatPriceRate(toCurrency(usd, currency), currency)
     const priceState = pricesOf(usage, book)
     const subPriceState = pricesOf(subUsage ?? undefined, book)
@@ -455,6 +408,88 @@ export function makeStatsContext(
         </span>
       )
     }
+    const [scopeMenu, setScopeMenu] = useState<'turns' | 'steps' | null>(null)
+    const scopeWrapRef = useRef<HTMLDivElement | null>(null)
+    useEffect(() => {
+      if (scopeMenu === null) return undefined
+      const onDown = (ev: globalThis.MouseEvent): void => {
+        if (scopeWrapRef.current !== null && !scopeWrapRef.current.contains(ev.target as Node)) setScopeMenu(null)
+      }
+      const onKey = (ev: globalThis.KeyboardEvent): void => { if (ev.key === 'Escape') setScopeMenu(null) }
+      document.addEventListener('mousedown', onDown)
+      document.addEventListener('keydown', onKey)
+      return () => {
+        document.removeEventListener('mousedown', onDown)
+        document.removeEventListener('keydown', onKey)
+      }
+    }, [scopeMenu])
+    const scopeOn = props.scope !== undefined && props.scope.turn !== null
+    const activeTurn = props.scope?.turn ?? null
+    const activeStep = props.scope?.step ?? null
+    const pickScope = (turn: number | null, step: number | null): void => {
+      setScopeMenu(null)
+      props.onScope?.({ turn, step })
+    }
+    const scopeFigure = (kind: 'turns' | 'steps', value: number, label: string): ReactElement => {
+      const enabled = props.onScope !== undefined
+      if (!enabled) return figure(kind, value, label)
+      const open = scopeMenu === kind
+      const active = kind === 'turns' ? activeTurn !== null : activeStep !== null
+      const menu = open ? (
+        <div className="lc-scope-menu" role="menu" onMouseDown={(ev) => { ev.stopPropagation() }}>
+          <button
+            type="button"
+            role="menuitem"
+            className={'lc-scope-item' + (!active ? ' lc-scope-item-on' : '')}
+            onClick={() => { pickScope(null, null) }}
+          >{t('scope.all')}</button>
+          <div className="lc-scope-list">
+            {kind === 'turns'
+              ? (props.turns ?? []).map(turn => (
+                <button
+                  key={turn}
+                  type="button"
+                  role="menuitem"
+                  className={'lc-scope-item' + (activeTurn === turn && activeStep === null ? ' lc-scope-item-on' : '')}
+                  onClick={() => { pickScope(turn, null) }}
+                >{t('scope.turnN', { n: turn })}</button>
+              ))
+              : (props.steps ?? []).map(option => (
+                <button
+                  key={String(option.turn) + ':' + String(option.step)}
+                  type="button"
+                  role="menuitem"
+                  className={'lc-scope-item' + (activeTurn === option.turn && activeStep === option.step ? ' lc-scope-item-on' : '')}
+                  onClick={() => { pickScope(option.turn, option.step) }}
+                >{t('scope.stepN', { turn: option.turn, n: option.step })}</button>
+              ))}
+          </div>
+        </div>
+      ) : null
+      return (
+        <span key={kind} className={'lc-core-kv lc-core-kv-' + kind + (enabled ? ' lc-core-kv-btn lc-scope-cell' : '') + (active ? ' lc-scope-on' : '')}>
+          {enabled ? (
+            <button
+              type="button"
+              className="lc-scope-trigger"
+              aria-haspopup="menu"
+              aria-expanded={open}
+              title={t(kind === 'turns' ? 'scope.turnHint' : 'scope.stepHint')}
+              onClick={() => { setScopeMenu(open ? null : kind) }}
+            >
+              <b>{fmt(value)}</b>
+              <i>{label}{active ? ' ▾' : ''}</i>
+            </button>
+          ) : (
+            <>
+              <b>{fmt(value)}</b>
+              <i>{label}</i>
+            </>
+          )}
+          {menu}
+        </span>
+      )
+    }
     const figure = (key: FigureJump, value: number, label: string): ReactElement => {
       const wire = jumpWire(key)
       return (
@@ -496,11 +531,6 @@ export function makeStatsContext(
             <IconData size={14} />
             {t('stats.title')}
           </span>
-          {props.filterActive === true && props.onFilterClear !== undefined ? (
-            <button type="button" className="lc-trace-filter-clear" onClick={props.onFilterClear}>
-              {t('trace.filterClear')}
-            </button>
-          ) : null}
         </div>
         <div className="lc-stats">
           <div className="lc-ledger">
@@ -510,12 +540,8 @@ export function makeStatsContext(
             </div>
             <div className="lc-core">
               <span className="lc-core-kvs lc-core-kvs-main">
-                {props.onTurnPick !== undefined
-                  ? filterFigure('turns', props.counts.turns, t('stats.turns'))
-                  : figure('turns', props.counts.turns, t('stats.turns'))}
-                {props.onStepPick !== undefined
-                  ? filterFigure('steps', props.counts.steps, t('stats.steps'))
-                  : figure('steps', props.counts.steps, t('stats.steps'))}
+                {scopeFigure('turns', props.counts.turns, t('stats.turns'))}
+                {scopeFigure('steps', props.counts.steps, t('stats.steps'))}
               </span>
               <span className="lc-core-kvs">
                 {figure('skills', props.counts.skills ?? 0, t('stats.skills'))}

@@ -66,7 +66,7 @@ function delegationOf(value: unknown): FleetDelegation | null {
   const to = strings(rec.to)
   if (to === undefined) return null
   const mode = rec.mode
-  if (mode !== 'one-shot' && mode !== 'continuable' && mode !== 'external') return null
+  if (mode !== 'one-shot' && mode !== 'continuable' && mode !== 'external' && mode !== 'unknown') return null
   const label = strings(rec.label)
   return {
     seq: numOf(rec.seq),
@@ -129,12 +129,12 @@ export function makeFleetDetailFetcher(
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ ...(full ? { full: true } : {}), ...(history ? { history: true } : {}), sessionId }),
     })
-    if (!response.ok) throw new Error(`dsh-context: fleet route HTTP ${response.status}`)
+    if (!response.ok) throw new Error(`dsh-context-explainer: fleet route HTTP ${response.status}`)
     const r = asRecord(await response.json())
-    if (r === null || r.ok !== true) throw new Error('dsh-context: fleet read failed')
+    if (r === null || r.ok !== true) throw new Error('dsh-context-explainer: fleet read failed')
     if (r.value === null) return null
     const detail = fleetDetailOf(r.value)
-    if (detail === null) throw new Error('dsh-context: fleet read malformed')
+    if (detail === null) throw new Error('dsh-context-explainer: fleet read malformed')
     return detail
   }
 }

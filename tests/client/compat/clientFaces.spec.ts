@@ -156,7 +156,7 @@ for (const baseline of BASELINES) {
       const settings = createContextSettings()
       const View = makeContextView(asClientCtx(ctx), kit, settings, makeAgentHeads())
       assert.doesNotThrow(() => {
-        watchSidebarContextTab(asClientCtx(ctx), View, kit.t, 'dsh-context')
+        watchSidebarContextTab(asClientCtx(ctx), View, kit.t, 'dsh-context-explainer')
       })
       assert.deepEqual(ctx.slots.of('sidebar.right.pane.tab'), [])
       const definitions: unknown[] = []

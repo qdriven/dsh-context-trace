@@ -2,7 +2,7 @@ import type { PlatformBalance, PlatformBalanceEntry } from '../shared/types'
 import { BALANCE_ROUTE } from './apiRoutes'
 import { asRecord } from './services'
 
-const STORAGE_KEY = 'dsh-context:platform-balance'
+const STORAGE_KEY = 'dsh-context-explainer:platform-balance'
 
 export interface StorageFace {
   getItem(key: string): string | null

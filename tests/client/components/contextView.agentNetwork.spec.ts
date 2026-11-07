@@ -45,7 +45,7 @@ describe('ContextView — the agent network card\'s own session', () => {
       bar.appendChild(b)
       return b
     }
-    const fleet = tab('Fleet')
+    const fleet = tab('E Fleet')
     let fleetClicks = 0
     fleet.addEventListener('click', () => { fleetClicks++ })
     document.body.appendChild(bar)
@@ -67,7 +67,7 @@ describe('ContextView — the agent network card\'s own session', () => {
     const View = makeView(new TestClientCtx({ services: { sessions: selfOnly(), sidebarRight: sidebar } }))
     const m = await mount(h(View, { sessionId: 'sv-self', useProjection: projectionsFor(richTimeline()) }))
     await click(query(m.container, '.lc-ledger-team-head'))
-    assert.deepEqual(opened, ['dsh-context'], 'the sidebar panel whose Context tab holds the card')
+    assert.deepEqual(opened, ['dsh-context-explainer'], 'the sidebar panel whose Context tab holds the card')
     await m.unmount()
 
     const bare = makeView(new TestClientCtx({ services: { sessions: selfOnly() } }))

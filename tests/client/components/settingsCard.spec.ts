@@ -1,4 +1,4 @@
-import { act, createElement as h } from 'react'
+import { act, createElement as h, useState } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
 import { makePluginConfigCard } from '../../../src/client/components/settingsCard'
@@ -14,7 +14,7 @@ function hookFor(state: SettingsState) {
 }
 
 function stateOf(partial: Partial<SettingsState> = {}): SettingsState {
-  return { status: 'ready', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '100', overviewRange: '30d', fleetTab: 'show', sessionsTab: 'show', traceTab: 'show', promptPrefix: '', promptSuffix: '', writable: true, ...partial }
+  return { status: 'ready', placement: 'all', granularity: 'step', mode: 'total', deltaBase: 'step', toolSort: 'count', fileSort: 'count', insightsEntry: 'show', durationCurve: 'show', overviewAutoSteps: '100', overviewRange: '30d', fleetTab: 'show', promptPrefix: '', promptSuffix: '', writable: true, ...partial }
 }
 
 function menuItems(): HTMLElement[] {
@@ -37,6 +37,23 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     await m2.unmount()
   })
 
+  test('a settings seat that appears or disappears after mount keeps the card rendering without shifting its hooks', async () => {
+    function useSettings<T>(sel: (s: SettingsState) => T): T {
+      useState(0)
+      return sel(stateOf())
+    }
+    const m = await mount(h(PluginConfigCard, {}))
+    assert.equal(m.container.childElementCount, 0)
+    await m.update(h(PluginConfigCard, { useContextSettings: useSettings }))
+    assert.ok(query(m.container, '.lc-settings-prefs'))
+    const before = m.container.firstElementChild
+    await m.update(h(PluginConfigCard, { useContextSettings: hookFor(stateOf()), set: () => {} }))
+    assert.equal(m.container.firstElementChild, before, 'a stable seat presence keeps the mounted card')
+    await m.update(h(PluginConfigCard, {}))
+    assert.equal(m.container.childElementCount, 0)
+    await m.unmount()
+  })
+
   test('renders the eleven selects and the two prompt text rows across three titled groups — no card chrome', async () => {
     const m = await mount(h(PluginConfigCard, { useContextSettings: hookFor(stateOf({ status: 'loading', writable: false })) }))
     assert.equal(m.container.querySelector('.lc-settings-card'), null, 'no settings-section chrome')
@@ -49,7 +66,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
       DICT_EN['settings.group.prompt'],
     ])
     const selects = queryAll<HTMLButtonElement>(m.container, '.lc-settings-select')
-    assert.equal(selects.length, 13)
+    assert.equal(selects.length, 11)
     assert.ok(selects.every(s => s.disabled), 'loading is not ready: the rows are disabled')
     const textareas = queryAll<HTMLTextAreaElement>(m.container, '.lc-settings-textarea')
     assert.equal(textareas.length, 2)
@@ -99,75 +116,59 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     commit('insightsEntry', 'hide')
 
     assert.ok(text(m.container).includes(DICT_EN['settings.fleetTab']))
-    assert.ok(text(selects[4]).includes(DICT_EN['showHide.show']))
-    await click(selects[4])
+    assert.ok(text(selects[2]).includes(DICT_EN['showHide.show']))
+    await click(selects[2])
     const fleetItems = menuItems()
     assert.deepEqual(fleetItems.map(i => text(i)), [DICT_EN['showHide.show'], DICT_EN['showHide.hide']])
     await click(fleetItems[1])
     commit('fleetTab', 'hide')
 
-    assert.ok(text(m.container).includes(DICT_EN['settings.sessionsTab']))
-    assert.ok(text(selects[2]).includes(DICT_EN['showHide.show']))
-    await click(selects[2])
-    const sessionItems = menuItems()
-    assert.deepEqual(sessionItems.map(i => text(i)), [DICT_EN['showHide.show'], DICT_EN['showHide.hide']])
-    await click(sessionItems[1])
-    commit('sessionsTab', 'hide')
-
-    assert.ok(text(m.container).includes(DICT_EN['settings.traceTab']))
-    assert.ok(text(selects[3]).includes(DICT_EN['showHide.show']))
-    await click(selects[3])
-    const traceItems = menuItems()
-    assert.deepEqual(traceItems.map(i => text(i)), [DICT_EN['showHide.show'], DICT_EN['showHide.hide']])
-    await click(traceItems[1])
-    commit('traceTab', 'hide')
-
     assert.ok(text(m.container).includes(DICT_EN['settings.overviewRange']))
-    assert.ok(text(selects[5]).includes(DICT_EN['ov.range.30d']))
-    assert.ok(text(selects[6]).includes(DICT_EN['gran.step']))
-    assert.ok(text(selects[7]).includes(DICT_EN['gran.total']))
+    assert.ok(text(selects[3]).includes(DICT_EN['ov.range.30d']))
+    assert.ok(text(selects[4]).includes(DICT_EN['gran.step']))
+    assert.ok(text(selects[5]).includes(DICT_EN['gran.total']))
     assert.ok(text(m.container).includes(DICT_EN['settings.durationCurve']))
-    assert.ok(text(selects[8]).includes(DICT_EN['showHide.show']))
+    assert.ok(text(selects[6]).includes(DICT_EN['showHide.show']))
     assert.ok(text(m.container).includes(DICT_EN['settings.overviewAuto']))
-    assert.ok(text(selects[9]).includes(stepsLabel(100)))
+    assert.ok(text(selects[7]).includes(stepsLabel(100)))
     assert.ok(text(m.container).includes(DICT_EN['settings.deltaBase']))
-    assert.ok(text(selects[10]).includes(DICT_EN['browser.base.step']))
+    assert.ok(text(selects[8]).includes(DICT_EN['browser.base.step']))
     assert.ok(text(m.container).includes(DICT_EN['settings.toolSort']))
-    assert.ok(text(selects[11]).includes(DICT_EN['tool.sort.count']))
+    assert.ok(text(selects[9]).includes(DICT_EN['tool.sort.count']))
     assert.ok(text(m.container).includes(DICT_EN['settings.fileSort']))
-    assert.ok(text(selects[12]).includes(DICT_EN['files.sort.count']))
+    assert.ok(text(selects[10]).includes(DICT_EN['files.sort.count']))
 
-    await click(selects[6])
+    await click(selects[4])
     const items = menuItems()
     assert.deepEqual(items.map(i => text(i)), [DICT_EN['gran.step'], DICT_EN['gran.turn']])
     await click(items[1])
     commit('defaultGranularity', 'turn')
 
-    await click(selects[7])
+    await click(selects[5])
     const modeItems = menuItems()
     assert.deepEqual(modeItems.map(i => text(i)), [DICT_EN['gran.total'], DICT_EN['gran.delta']])
     await click(modeItems[1])
     commit('defaultTrendMode', 'delta')
 
-    await click(selects[8])
+    await click(selects[6])
     const curveItems = menuItems()
     assert.deepEqual(curveItems.map(i => text(i)), [DICT_EN['showHide.show'], DICT_EN['showHide.hide']])
     await click(curveItems[1])
     commit('defaultDurationCurve', 'hide')
 
-    await click(selects[9])
+    await click(selects[7])
     const overviewItems = menuItems()
     assert.deepEqual(overviewItems.map(i => text(i)), [stepsLabel(100), stepsLabel(200), stepsLabel(300), DICT_EN['settings.overviewAutoOff']])
     await click(overviewItems[3])
     commit('overviewAutoSteps', 'off')
 
-    await click(selects[10])
+    await click(selects[8])
     const baseItems = menuItems()
     assert.deepEqual(baseItems.map(i => text(i)), [DICT_EN['browser.base.step'], DICT_EN['browser.base.turn']])
     await click(baseItems[1])
     commit('defaultDeltaBase', 'turn')
 
-    await click(selects[11])
+    await click(selects[9])
     const toolItems = menuItems()
     assert.deepEqual(toolItems.map(i => text(i)), [
       DICT_EN['tool.sort.size'],
@@ -177,7 +178,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     await click(toolItems[2])
     commit('defaultToolSort', 'name')
 
-    await click(selects[12])
+    await click(selects[10])
     const sortItems = menuItems()
     assert.deepEqual(sortItems.map(i => text(i)), [
       DICT_EN['files.sort.count'],
@@ -189,7 +190,7 @@ describe('PluginConfigCard (the Plugins-page seat)', () => {
     await click(sortItems[4])
     commit('defaultFileSort', 'name')
 
-    await click(selects[5])
+    await click(selects[3])
     const rangeItems = menuItems()
     assert.deepEqual(rangeItems.map(i => text(i)), [
       DICT_EN['ov.range.today'],

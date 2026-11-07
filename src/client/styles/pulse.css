@@ -248,8 +248,8 @@
 .lc-pulse-event-list[hidden] { display: none; }
 .lc-pulse-event-stream .lc-comms-event { border-radius: 7px; }
 .lc-pulse-event-stream .lc-comms-event-open {
-  border-color: color-mix(in srgb, var(--lc-pulse-cyan) 65%, var(--dsw-alias-border-l2));
-  border-left-color: var(--lc-pulse-cyan);
+  border-top-color: color-mix(in srgb, var(--lc-pulse-cyan) 65%, var(--dsw-alias-border-l2));
+  border-bottom-color: color-mix(in srgb, var(--lc-pulse-cyan) 65%, var(--dsw-alias-border-l2));
   background-color: color-mix(in srgb, var(--lc-pulse-cyan) 12%, var(--dsw-alias-bg-layer-1));
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--lc-pulse-cyan) 34%, transparent);
 }
@@ -269,8 +269,9 @@
 .lc-pulse-quiet-lane > button:hover { color: var(--lc-pulse-violet); }
 .lc-pulse-quiet-track { border-bottom-style: dashed; }
 
-@container pulse (min-width: 900px) {
-  .lc-pulse-main-graph { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+@media (min-width: 1100px) {
+  .lc-pulse-main-graph { grid-template-columns: minmax(200px, 1fr) 9px minmax(0, 1.4fr); }
+  .lc-pulse-main-graph > .lc-row-resizer-x { display: block; }
 }
 
 @container pulse (max-width: 850px) {
@@ -321,3 +322,38 @@
 @media (prefers-reduced-motion: reduce) {
   .lc-pulse *, .lc-pulse *::before, .lc-pulse *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+.lc-row-resizer { flex: none; display: none; }
+.lc-row-resizer-x {
+  display: none;
+  width: 9px;
+  cursor: col-resize;
+  touch-action: none;
+  position: relative;
+  align-self: stretch;
+}
+.lc-row-resizer-x::after {
+  content: '';
+  position: absolute;
+  inset: 0 3px;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l2, rgba(0,0,0,.14));
+  transition: background-color .15s ease-in-out;
+}
+.lc-row-resizer-x:hover::after, .lc-row-resizer-x:active::after { background: var(--dsw-alias-state-brand-primary, #7c3aed); opacity: .4; }
+.lc-row-resizer-y {
+  display: block;
+  height: 9px;
+  cursor: row-resize;
+  touch-action: none;
+  position: relative;
+}
+.lc-row-resizer-y::after {
+  content: '';
+  position: absolute;
+  inset: 3px 0;
+  border-radius: 2px;
+  background: var(--dsw-alias-border-l2, rgba(0,0,0,.14));
+  transition: background-color .15s ease-in-out;
+}
+.lc-row-resizer-y:hover::after, .lc-row-resizer-y:active::after { background: var(--dsw-alias-state-brand-primary, #7c3aed); opacity: .4; }

@@ -2,8 +2,9 @@ import { ContextIcon } from './icon'
 import { modalStoreOf, setPendingConsume } from './modalStore'
 import type { ClientCtx, InputTriggersFace } from './services'
 import type { ViewKit } from './viewkit'
+import { COMMAND_ID } from './ids'
 
-const COMMAND = 'context'
+const COMMAND = COMMAND_ID
 const LINE = '/' + COMMAND
 
 export function registerContextCommand(ctx: ClientCtx, kit: ViewKit): void {
@@ -37,6 +38,6 @@ export function registerContextCommand(ctx: ClientCtx, kit: ViewKit): void {
         modalStoreOf(session.sessionId).set(true)
         return Promise.resolve<'handled'>('handled')
       },
-    }), 'dsh-context: /context command')
+    }), 'dsh-context-explainer: /context command')
   })
 }

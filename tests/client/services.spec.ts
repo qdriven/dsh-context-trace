@@ -852,11 +852,11 @@ describe('seedConversationViewVia — the pre-jump view preference', () => {
   test('seeds a fresh key and merges into an existing state, draft riding along', () => {
     globalThis.localStorage.clear()
     seedConversationViewVia('session-1', CONTEXT_VIEW_ID)
-    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-1'), JSON.stringify({ view: 'context' }))
+    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-1'), JSON.stringify({ view: 'context-explainer' }))
     globalThis.localStorage.setItem('dsh.conversation.session-2', JSON.stringify({ draft: { text: 'hi', references: [] }, view: 'chat', viewRequest: null }))
     seedConversationViewVia('session-2', CONTEXT_VIEW_ID)
     assert.deepEqual(JSON.parse(globalThis.localStorage.getItem('dsh.conversation.session-2')!), {
-      draft: { text: 'hi', references: [] }, view: 'context', viewRequest: null,
+      draft: { text: 'hi', references: [] }, view: 'context-explainer', viewRequest: null,
     })
     globalThis.localStorage.clear()
   })
@@ -865,10 +865,10 @@ describe('seedConversationViewVia — the pre-jump view preference', () => {
     globalThis.localStorage.clear()
     globalThis.localStorage.setItem('dsh.conversation.session-3', 'not-json')
     seedConversationViewVia('session-3', CONTEXT_VIEW_ID)
-    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-3'), JSON.stringify({ view: 'context' }))
+    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-3'), JSON.stringify({ view: 'context-explainer' }))
     globalThis.localStorage.setItem('dsh.conversation.session-4', '[1]')
     seedConversationViewVia('session-4', CONTEXT_VIEW_ID)
-    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-4'), JSON.stringify({ view: 'context' }))
+    assert.equal(globalThis.localStorage.getItem('dsh.conversation.session-4'), JSON.stringify({ view: 'context-explainer' }))
     const denied = (): never => { throw new Error('denied') }
     const getItem = Object.getOwnPropertyDescriptor(Storage.prototype, 'getItem')
     const setItem = Object.getOwnPropertyDescriptor(Storage.prototype, 'setItem')

@@ -141,7 +141,7 @@ describe('makeDetailFetcher', () => {
     })
     const d = await makeDetailFetcher('s1')!()
     assert.equal(d?.rev, 4)
-    assert.equal(seen.url, 'api/dsh-context/detail')
+    assert.equal(seen.url, 'api/dsh-context-explainer/detail')
     assert.deepEqual(seen.body, { sessionId: 's1' })
   })
 })

@@ -92,7 +92,7 @@ async function callRoute(routes: Map<string, RouteBox>, body: unknown): Promise<
   return await response.json() as never
 }
 
-describe('dsh-context snapshot route', () => {
+describe('dsh-context-explainer snapshot route', () => {
 test('without the connection face the route never registers, and the watcher disposes cleanly', async () => {
     const ctx = new Context()
     const routes = new Map<string, RouteBox>()
@@ -222,6 +222,6 @@ test('without the connection face the route never registers, and the watcher dis
     const { routes } = await bootWithRoutes()
     const result = await callRoute(routes, 'not json')
     assert.equal(result.ok, false)
-    assert.equal(result.error?.code, 'dsh-context/bad-request')
+    assert.equal(result.error?.code, 'dsh-context-explainer/bad-request')
   })
 })

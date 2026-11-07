@@ -6,10 +6,10 @@ import { createContextSettings } from '../../src/client/settings'
 import { TestClientCtx, asClientCtx } from './helpers/harness'
 import { mount, query, text } from './helpers/kit'
 
-const NS = 'dsh-context'
+const NS = 'dsh-context-explainer'
 
 function view(): ReactElement {
-  return h('div', { className: 'fleet-view' }, 'fleet')
+  return h('div', { className: 'fleet-view' }, 'fleet-explainer')
 }
 
 function wire(ctx: TestClientCtx, settings = createContextSettings()): { dispose: () => void; settings: ReturnType<typeof createContextSettings> } {
@@ -26,12 +26,12 @@ describe('watchFleetTab — the Fleet tab\'s own gate', () => {
     assert.equal(entries.length, 1)
     const { registration, component } = entries[0]
     assert.equal(registration.name, 'conversation.view')
-    assert.equal(registration.id, 'fleet')
+    assert.equal(registration.id, 'fleet-explainer')
     assert.equal(registration.order, 30, 'right of the Context tab (20)')
     assert.equal(registration.locale, NS)
-    assert.equal(registration.label?.(), 'Fleet')
+    assert.equal(registration.label?.(), 'E Fleet')
     const m = await mount(component({ sessionId: 's-1' }) as ReactElement)
-    assert.equal(text(query(m.container, '.fleet-view')), 'fleet')
+    assert.equal(text(query(m.container, '.fleet-view')), 'fleet-explainer')
     await m.unmount()
     dispose()
     assert.deepEqual(ctx.slots.of('conversation.view'), [], 'the watcher dispose unwinds the tab')
@@ -65,7 +65,7 @@ describe('watchFleetTab — the Fleet tab\'s own gate', () => {
 
     settings.set('fleetTab', 'show')
     assert.equal(ctx.slots.of('conversation.view').length, 1)
-    assert.equal(ctx.slots.of('conversation.view')[0].registration.id, 'fleet')
+    assert.equal(ctx.slots.of('conversation.view')[0].registration.id, 'fleet-explainer')
     settings.set('fleetTab', 'hide')
     assert.deepEqual(ctx.slots.of('conversation.view'), [])
     dispose()

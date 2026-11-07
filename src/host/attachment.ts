@@ -6,7 +6,7 @@ import type { AttachmentRef } from '../shared/attachment'
 import { type ColdReadGate, makeColdReadGate } from './coldRead'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const ATTACHMENT_ROUTE = '/api/dsh-context/attachment'
+export const ATTACHMENT_ROUTE = '/api/dsh-context-explainer/attachment'
 
 const IMAGE_MEDIA_EXTENSION: Readonly<Record<string, string>> = {
   'image/png': 'png',
@@ -79,7 +79,7 @@ export function imagePreviewNameOf(ref: AttachmentRef): string | null {
 function previewAliasDirOf(objectPath: string): string | null {
   const root = dirname(dirname(dirname(objectPath)))
   if (basename(root) !== 'v1' || basename(dirname(root)) !== 'attachments') return null
-  return join(dirname(dirname(root)), 'cache', 'dsh-context', 'previews')
+  return join(dirname(dirname(root)), 'cache', 'dsh-context-explainer', 'previews')
 }
 
 function filePathOf(store: AttachmentStoreFace | undefined, ref: AttachmentRef): string | null {
@@ -140,13 +140,13 @@ export function watchAttachmentChannel(ctx: Context, coldReads: ColdReadGate = m
         sessionId = body?.sessionId
         attachmentId = body?.attachmentId
       } catch {
-        return failure('dsh-context/bad-request', 'body is not JSON')
+        return failure('dsh-context-explainer/bad-request', 'body is not JSON')
       }
       if (typeof sessionId !== 'string' || sessionId === '') {
-        return failure('dsh-context/bad-request', 'missing sessionId')
+        return failure('dsh-context-explainer/bad-request', 'missing sessionId')
       }
       if (typeof attachmentId !== 'string' || attachmentId === '') {
-        return failure('dsh-context/bad-request', 'missing attachmentId')
+        return failure('dsh-context-explainer/bad-request', 'missing attachmentId')
       }
       try {
         const query = ctx.get('sessionQuery') as SessionQueryFace | undefined
@@ -174,6 +174,6 @@ export function watchAttachmentChannel(ctx: Context, coldReads: ColdReadGate = m
         return failure('gateway/internal', err instanceof Error ? err.message : String(err))
       }
     }
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, ATTACHMENT_ROUTE, handler, 'dsh-context: attachment route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, ATTACHMENT_ROUTE, handler, 'dsh-context-explainer: attachment route')
   })
 }

@@ -1,4 +1,4 @@
-import { act, createElement as h } from 'react'
+import { act, createElement as h, useState } from 'react'
 import assert from 'node:assert/strict'
 import { describe, test } from 'vitest'
 import { makeContextJumpButton } from '../../../src/client/components/contextJump'
@@ -30,6 +30,19 @@ describe('ContextJump — seat guards', () => {
     }
   })
 
+  test('a chat seat that appears or disappears after mount keeps the button rendering without shifting its hooks', async () => {
+    function useChatSeat<T>(sel: (s: unknown) => T): T {
+      useState(0)
+      return sel({ legacy: { nodes: [reply] } })
+    }
+    const m = await mount(h(Jump, { messageId: 'msg-4', sessionId: SESSION }))
+    await m.update(h(Jump, { messageId: 'msg-4', sessionId: SESSION, useChat: useChatSeat }))
+    assert.ok(query(m.container, 'button.lc-jump') !== null)
+    await m.update(h(Jump, { messageId: 'msg-4', sessionId: SESSION }))
+    assert.ok(query(m.container, 'button.lc-jump') !== null)
+    await m.unmount()
+  })
+
   test('renders the labelled icon button for a finalized reply; a click with no served node seat switches tabs and mints no focus', async () => {
     const m = await mount(h(Jump, { messageId: 'msg-4', sessionId: SESSION }))
     const btn = query(m.container, 'button.lc-jump')
@@ -50,7 +63,7 @@ describe('ContextJump — click flow', () => {
     chat.textContent = 'Chat'
     const context = document.createElement('button')
     context.setAttribute('role', 'tab')
-    context.textContent = 'Context'
+    context.textContent = 'E Context'
     let contextClicks = 0
     context.addEventListener('click', () => { contextClicks++ })
     bar.append(chat, context)
@@ -115,7 +128,7 @@ describe('ContextJump — click flow', () => {
     const bar = document.createElement('div')
     const context = document.createElement('button')
     context.setAttribute('role', 'tab')
-    context.textContent = 'Context'
+    context.textContent = 'E Context'
     let contextClicks = 0
     context.addEventListener('click', () => { contextClicks++ })
     bar.appendChild(context)
@@ -158,7 +171,7 @@ describe('ContextJump — sidebar landing', () => {
     const bar = document.createElement('div')
     const context = document.createElement('button')
     context.setAttribute('role', 'tab')
-    context.textContent = 'Context'
+    context.textContent = 'E Context'
     let contextClicks = 0
     context.addEventListener('click', () => { contextClicks++ })
     bar.appendChild(context)
@@ -166,7 +179,7 @@ describe('ContextJump — sidebar landing', () => {
     try {
       const m = await mount(h(SidebarJump, { messageId: 'msg-4', sessionId: SESSION, ...chatWith([reply]) }))
       await click(query(m.container, 'button.lc-jump'))
-      assert.deepEqual(opened, ['dsh-context'], 'the sidebar Context tab was opened by kind')
+      assert.deepEqual(opened, ['dsh-context-explainer'], 'the sidebar Context tab was opened by kind')
       assert.equal(takeContextFocus(SESSION), 4, 'the clicked reply’s request seq rides the relay')
       assert.equal(contextClicks, 0, 'the conversation tab was not touched')
       await m.unmount()

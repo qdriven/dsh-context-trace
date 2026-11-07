@@ -12,7 +12,7 @@ const HOME_PROBE_PACKAGES = ['@deepseek-ai/dsh', ...LIBRARY_PROBE_PACKAGES] as c
 
 function ownPackageRoot(): string {
   try {
-    return dirname(fileURLToPath(import.meta.resolve('dsh-context/package.json')))
+    return dirname(fileURLToPath(import.meta.resolve('dsh-context-explainer/package.json')))
   } catch {
     /* v8 ignore next */
     return dirname(fileURLToPath(import.meta.url))
@@ -98,14 +98,14 @@ export function detectHarnessVersion(
 ): string | undefined {
   const running = probeRunningTree((specifier) => {
     const url = resolveUrl(specifier)
-    if (!url.startsWith('file:')) throw new Error(`dsh-context: non-file module URL for ${specifier}`)
+    if (!url.startsWith('file:')) throw new Error(`dsh-context-explainer: non-file module URL for ${specifier}`)
     return fileURLToPath(url)
   }, pluginRoot)
   if (running !== undefined) return running
   try {
     const homePath = ctx.get('dshHomePath') as unknown
     if (typeof homePath === 'function') {
-      const req = createRequire((homePath as (...segments: string[]) => string)('profiles', 'dsh-context-version-probe.cjs'))
+      const req = createRequire((homePath as (...segments: string[]) => string)('profiles', 'dsh-context-explainer-version-probe.cjs'))
       const home = probeAnchor(specifier => req.resolve(specifier), HOME_PROBE_PACKAGES)
       if (home !== undefined) return home
     }

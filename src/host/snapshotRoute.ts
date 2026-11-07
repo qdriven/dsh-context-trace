@@ -2,7 +2,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { asRecord } from './record'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const SNAPSHOT_ROUTE = '/api/dsh-context/snapshot'
+export const SNAPSHOT_ROUTE = '/api/dsh-context-explainer/snapshot'
 
 const SNAPSHOT_KEYS = new Set<string>(['contextTimeline', 'contextActivity'])
 
@@ -61,7 +61,7 @@ export function watchSnapshotRoute(ctx: Context): () => void {
         const body = (await request.json()) as unknown
         wanted = body !== null && typeof body === 'object' ? wantedIdsOf(body as Record<string, unknown>) : undefined
       } catch {
-        return failure('dsh-context/bad-request', 'body is not JSON')
+        return failure('dsh-context-explainer/bad-request', 'body is not JSON')
       }
       try {
         const records = await listSessions()
@@ -94,7 +94,7 @@ export function watchSnapshotRoute(ctx: Context): () => void {
       }
     }
 
-    if (!registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, SNAPSHOT_ROUTE, handler, 'dsh-context: snapshot route')) return
+    if (!registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, SNAPSHOT_ROUTE, handler, 'dsh-context-explainer: snapshot route')) return
     /* v8 ignore next 1 -- the fiber's unmount cleanup, driven by cordis only */
     return () => {}
   })

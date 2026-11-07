@@ -33,7 +33,7 @@ export interface LogLine {
 export function captureLogs(ctx: Context): LogLine[] {
   const lines: LogLine[] = []
   ctx.logger.exporter({
-    levels: { root: 3, 'dsh-context': 3 },
+    levels: { root: 3, 'dsh-context-explainer': 3 },
     export(message) {
       lines.push({ level: message.type, text: message.args.map(a => String(a)).join(' ') })
     },

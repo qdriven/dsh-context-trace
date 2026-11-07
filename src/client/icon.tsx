@@ -44,7 +44,7 @@ export interface ContextIconProps {
 }
 
 export function ContextIcon({ size = 20, className, mono = false }: ContextIconProps): ReactElement {
-  const id = `dsh-context-sheet-${useId().replaceAll(':', '')}`
+  const id = `dsh-context-explainer-sheet-${useId().replaceAll(':', '')}`
   return (
     <svg
       width={size}

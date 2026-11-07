@@ -8,7 +8,7 @@ import { createTimelineState } from './foldState'
 import type { CommandStateRecord, TimelineState } from './foldState'
 import { serveCommand } from './foldWire'
 
-export const COMMANDS_ROUTE = '/api/dsh-context/commands'
+export const COMMANDS_ROUTE = '/api/dsh-context-explainer/commands'
 
 const PAGE_LIMIT = 400
 const PAGE_LIMIT_MAX = 1_000
@@ -138,13 +138,13 @@ export function watchCommandPageChannel(
           limit = (body as { limit?: unknown }).limit
         }
       } catch {
-        return failure('dsh-context/bad-request', 'body is not JSON')
+        return failure('dsh-context-explainer/bad-request', 'body is not JSON')
       }
       if (typeof sessionId !== 'string' || sessionId === '') {
-        return failure('dsh-context/bad-request', 'missing sessionId')
+        return failure('dsh-context-explainer/bad-request', 'missing sessionId')
       }
       if (beforeSeq !== undefined && (typeof beforeSeq !== 'number' || !Number.isFinite(beforeSeq) || beforeSeq < 0)) {
-        return failure('dsh-context/bad-request', 'beforeSeq must be a non-negative number')
+        return failure('dsh-context-explainer/bad-request', 'beforeSeq must be a non-negative number')
       }
       const pageSize = typeof limit === 'number' && Number.isFinite(limit)
         ? Math.min(PAGE_LIMIT_MAX, Math.max(1, Math.floor(limit)))
@@ -166,6 +166,6 @@ export function watchCommandPageChannel(
         return failure('gateway/internal', err instanceof Error ? err.message : String(err))
       }
     }
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, COMMANDS_ROUTE, handler, 'dsh-context: command page route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, COMMANDS_ROUTE, handler, 'dsh-context-explainer: command page route')
   })
 }

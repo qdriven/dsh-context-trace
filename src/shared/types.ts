@@ -104,7 +104,7 @@ export interface FleetDelegation {
   seq: number
   time: number
   to: string
-  mode: 'one-shot' | 'continuable' | 'external'
+  mode: 'one-shot' | 'continuable' | 'external' | 'unknown'
   label?: string
 }
 
@@ -153,8 +153,6 @@ export interface PluginSettings {
   overviewAutoSteps: OverviewAutoSteps
   defaultOverviewRange: DefaultOverviewRange
   fleetTab: FleetTab
-  sessionsTab: FleetTab
-  traceTab: FleetTab
   promptPrefix: string
   promptSuffix: string
 }

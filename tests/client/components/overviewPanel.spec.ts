@@ -1,4 +1,4 @@
-import { act, createElement as h } from 'react'
+import { act, createElement as h, useState } from 'react'
 import assert from 'node:assert/strict'
 import { afterEach, beforeEach, describe, test, vi } from 'vitest'
 import { makeOverviewPanel } from '../../../src/client/components/overviewPanel'
@@ -197,8 +197,8 @@ describe('OverviewPanel', () => {
     const ctx = makeCtx({ refresh: () => { pulls++; return Promise.resolve() } })
     const { m } = await openPanel(ctx)
     assert.equal(pulls, 1, 'the baseline re-pull fires on mount')
-    assert.deepEqual(backfillPosts, ['api/dsh-context/backfill'], 'the warm-up trigger POST fires on mount')
-    assert.ok(text(m.container).includes('Usage Insights'))
+    assert.deepEqual(backfillPosts, ['api/dsh-context-explainer/backfill'], 'the warm-up trigger POST fires on mount')
+    assert.ok(text(m.container).includes('Context Insights'))
     const scrollRows = [...query(m.container, '.lc-ov-pagecontent').children].map(el => el.className.split(' ')[0])
     assert.deepEqual(scrollRows, ['lc-ov-pagehead', 'lc-ov-first', 'lc-ov-stats', 'lc-ov-body'])
     assert.ok(query(m.container, '.lc-ov-pagehead').hasAttribute('data-window-drag'), 'the head is the desktop window drag area')
@@ -235,6 +235,24 @@ describe('OverviewPanel', () => {
     assert.ok(text(cards[0]).includes('alpha session'))
     assert.ok(text(cards[0]).includes('workspace-one'), 'the breadcrumb group joined')
     assert.ok(text(cards[0]).includes('alpha'), 'the project basename joined')
+    await m.unmount()
+  })
+
+  test('a sessions seat that appears or disappears after mount keeps the panel rendering without shifting its hooks', async () => {
+    const ctx = makeCtx()
+    const Panel = makeOverviewPanel(asClientCtx(ctx), makeKit(), settingsWith())
+    function useSeat<T>(sel: (s: unknown) => T): T {
+      useState(0)
+      return sel(sessionsSnapshot())
+    }
+    const m = await mount(h(Panel, {}))
+    await flush()
+    await m.update(h(Panel, { useSessions: useSeat, useWorkspaces: useSeat }))
+    await flush()
+    assert.ok(query(m.container, '.lc-ov-page') !== null)
+    await m.update(h(Panel, {}))
+    await flush()
+    assert.ok(query(m.container, '.lc-ov-page') !== null)
     await m.unmount()
   })
 
@@ -654,7 +672,7 @@ test('the overview batch fills a row lacking list-row values', async () => {
     assert.equal(head.children[0].className, 'lc-ov-pagetitle')
     assert.equal(head.children[1], chip)
     await click(chip)
-    assert.deepEqual(bundles, ['dsh-context'], 'the chip jumps through the Plugins panel navigator')
+    assert.deepEqual(bundles, ['dsh-context-explainer'], 'the chip jumps through the Plugins panel navigator')
     await m.unmount()
   })
 
@@ -715,7 +733,7 @@ test('the overview batch fills a row lacking list-row values', async () => {
     const Panel = makeOverviewPanel(asClientCtx(ctx), makeKit('zh'), settingsWith())
     const m = await mount(h(Panel, { useSessions: useHookOf(sessionsSnapshot()), useWorkspaces: useHookOf(workspacesSnapshotValue), }))
     await flush()
-    assert.ok(text(m.container).includes('使用洞察'))
+    assert.ok(text(m.container).includes('上下文洞察'))
     assert.ok(text(m.container).includes('全部会话'), 'the All default labels the sessions card and the coverage option')
     assert.ok(text(m.container).includes('仅显示已归档'), 'the coverage options ride the zh dictionary too')
     assert.ok(text(m.container).includes('Token 统计'), 'the aggregate stats row rides the zh dictionary too')

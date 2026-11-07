@@ -6,7 +6,7 @@ import { createContextSettings } from '../../src/client/settings'
 import { TestClientCtx, asClientCtx } from './helpers/harness'
 import { makeKit } from './helpers/kit'
 
-const NS = 'dsh-context'
+const NS = 'dsh-context-explainer'
 
 function page(_props: { sessionId?: string } & Record<string, unknown>): null {
   return null
@@ -32,7 +32,7 @@ describe('watchInsightPage', () => {
     assert.equal(entries[0].registration.id, INSIGHT_PANEL_ID, 'the entry id addresses the main panel')
     assert.equal(entries[0].registration.order, INSIGHT_PANEL_ORDER)
     assert.equal(entries[0].registration.locale, NS)
-    assert.equal(entries[0].registration.label?.(), 'Usage Insights', 'the label thunk resolves the page title')
+    assert.equal(entries[0].registration.label?.(), 'Context Insights', 'the label thunk resolves the page title')
     const iconEl = entries[0].component({ size: 16 }) as ReactElement
     assert.equal((iconEl.type as { name: string }).name, 'InsightPanelIcon', 'the entry glyph component')
     const defaults = entries[0].component({}) as ReactElement

@@ -293,7 +293,7 @@ describe('watchAttachmentChannel image aliases', () => {
   })
 
   function storeOf(bytes: string): { home: string; objectPath: string; store: { imageHostPath: () => string } } {
-    const home = mkdtempSync(join(tmpdir(), 'dsh-context-att-'))
+    const home = mkdtempSync(join(tmpdir(), 'dsh-context-explainer-att-'))
     homes.push(home)
     const digest = 'ab'.repeat(32)
     const objectPath = join(home, 'attachments', 'v1', 'objects', 'ab', digest)
@@ -307,7 +307,7 @@ describe('watchAttachmentChannel image aliases', () => {
     const { captured } = armed({ sessionQuery: observing([USER_EVENT]), attachments: store })
     const r = await call(captured, { sessionId: 's1', attachmentId: 'sha256:i1' })
     const path = (r.value as { path: string }).path
-    assert.equal(path, join(home, 'cache', 'dsh-context', 'previews', 'ab', basename(objectPath), 'result-image.jpg'))
+    assert.equal(path, join(home, 'cache', 'dsh-context-explainer', 'previews', 'ab', basename(objectPath), 'result-image.jpg'))
     assert.equal(readFileSync(path, 'utf8'), 'image-bytes', 'the link shares the stored bytes')
     const again = await call(captured, { sessionId: 's1', attachmentId: 'sha256:i1' })
     assert.deepEqual(again.value, { path })

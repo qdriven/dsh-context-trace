@@ -39,6 +39,13 @@ describe('createToolAttribution', () => {
     assert.equal(attribution.ownerOf('grep'), '@deepseek-ai/dsh-tool-fs-search')
   })
 
+  test('the static chain follows the detected line for the moved schedule tools', () => {
+    assert.equal(createToolAttribution(new Context(), '0.2.0-rc.2').ownerOf('schedule_create'), '@deepseek-ai/dsh-schedule')
+    const current = createToolAttribution(new Context(), '0.2.2-rc.1')
+    assert.equal(current.ownerOf('schedule_create'), '@deepseek-ai/dsh-tool-schedule')
+    assert.equal(current.ownerOf('schedule_view'), '@deepseek-ai/dsh-tool-schedule')
+  })
+
   test('attributes tools to the plugin that read ctx.tools and registered them', async () => {
     const app = new Context()
     const attribution = createToolAttribution(app)
@@ -61,6 +68,34 @@ describe('createToolAttribution', () => {
     assert.equal(attribution.ownerOf('beta'), 'provider-a')
   })
 
+  test('forwards registration options and keeps the disposer attribution', async () => {
+    const app = new Context()
+    const seen: unknown[][] = []
+    let receiver: unknown
+    const fake = {
+      register(this: unknown, ...args: unknown[]) {
+        receiver = this
+        seen.push(args)
+        return () => {}
+      },
+    }
+    app.provide('tools', fake)
+    const attribution = createToolAttribution(app)
+    const when = () => true
+    let release: (() => void) | undefined
+    await app.plugin({
+      name: 'gated-provider',
+      apply(sub) {
+        release = (sub as any).tools.register({ name: 'gated' }, { when })
+      },
+    })
+    assert.deepEqual(seen, [[{ name: 'gated' }, { when }]], 'the definition and its registration options both reach the original')
+    assert.equal(receiver, fake, 'the original register keeps its receiver')
+    assert.equal(attribution.ownerOf('gated'), 'gated-provider')
+    release?.()
+    assert.equal(attribution.ownerOf('gated'), undefined, 'the forwarded call still returns the wrapped disposer')
+  })
+
   test('falls back to the caller stack when no tools read happened', async () => {
     const app = new Context()
     const fake = { register() { return () => {} } }
@@ -81,7 +116,7 @@ describe('createToolAttribution', () => {
     const { registerBlind } = await import('./fixtures/anon-plugin/index.js')
     let attribution!: ToolAttribution
     await app.plugin({
-      name: 'dsh-context',
+      name: 'dsh-context-explainer',
       inject: ['tools'],
       apply(sub) {
         attribution = createToolAttribution(sub)
@@ -182,11 +217,11 @@ describe('createToolAttribution', () => {
     let reCalls = 0
     reapplied.provide('tools', { register() { reCalls++; return () => {} } })
     let attribution!: ToolAttribution
-    const plugged = reapplied.plugin({ name: 'dsh-context', apply(sub) { createToolAttribution(sub) } })
+    const plugged = reapplied.plugin({ name: 'dsh-context-explainer', apply(sub) { createToolAttribution(sub) } })
     await plugged
     await plugged.dispose()
     const replugged = reapplied.plugin({
-      name: 'dsh-context',
+      name: 'dsh-context-explainer',
       apply(sub) {
         attribution = createToolAttribution(sub)
       },
@@ -209,7 +244,7 @@ describe('createToolAttribution', () => {
     const original = fake.register
     let attribution!: ToolAttribution
     const fiber = app.plugin({
-      name: 'dsh-context',
+      name: 'dsh-context-explainer',
       apply(sub) {
         attribution = createToolAttribution(sub)
       },
@@ -251,7 +286,7 @@ describe('createToolAttribution', () => {
     const original = tools.register
     let attribution!: ToolAttribution
     const fiber = app.plugin({
-      name: 'dsh-context',
+      name: 'dsh-context-explainer',
       apply(sub) {
         attribution = createToolAttribution(sub)
       },
@@ -369,7 +404,7 @@ describe('createToolAttribution', () => {
     assert.equal(packageNameFrom(local), 'local-plugin')
     assert.equal(packageNameFrom(local), 'local-plugin', 'results are cached per directory')
     const malformed = fileURLToPath(new URL('./fixtures/bad-pkg/index.js', import.meta.url))
-    assert.equal(packageNameFrom(malformed), 'dsh-context', 'a malformed package.json is skipped, the walk continues upward')
+    assert.equal(packageNameFrom(malformed), 'dsh-context-explainer', 'a malformed package.json is skipped, the walk continues upward')
     const rootless = path.join(path.parse(process.cwd()).root, '__dsh_context_nonexistent__', 'file.js')
     assert.equal(packageNameFrom(rootless), undefined, 'no readable boundary up to the filesystem root')
     const deep = path.join(path.parse(process.cwd()).root, ...Array.from({ length: 13 }, (_, i) => `__dsh_ctx_l${i}__`), 'file.js')

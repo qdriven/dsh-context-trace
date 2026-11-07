@@ -48,7 +48,7 @@ describe('registerContextCommand', () => {
   test('with the service it registers one "/" source named context at order 1', () => {
     const { ctx, inputTriggers, source } = setup()
     assert.equal(source.trigger, '/')
-    assert.equal(source.name, 'context')
+    assert.equal(source.name, 'context-explainer')
     assert.equal(source.order, 1)
     ctx.dispose()
     assert.equal(inputTriggers.sources.length, 0)
@@ -65,7 +65,7 @@ describe('candidates', () => {
     const { source } = setup()
     const candidates = await source.candidates({ sessionId: 'cmd-empty' }, { query: '', position: 'leading', signal: SIGNAL })
     assert.deepEqual(candidates, [{
-      name: 'context',
+      name: 'context-explainer',
       label: DICT_EN['cmd.label'],
       icon: ContextIcon,
       section: DICT_EN['cmd.section'],
@@ -78,7 +78,7 @@ describe('candidates', () => {
     const session = { sessionId: 'cmd-prefix' }
     const hit = await source.candidates(session, { query: 'con', position: 'leading', signal: SIGNAL })
     assert.equal(hit.length, 1)
-    assert.equal(hit[0].name, 'context')
+    assert.equal(hit[0].name, 'context-explainer')
     assert.deepEqual(await source.candidates(session, { query: 'xyz', position: 'leading', signal: SIGNAL }), [])
     assert.equal((await source.candidates(session, { query: ' CONTEXT ', position: 'leading', signal: SIGNAL })).length, 1)
   })
@@ -89,7 +89,7 @@ describe('onPick', () => {
     const { source } = setup()
     const span = { start: 0, end: 8, draftRev: 3 }
     const outcome = source.onPick({
-      candidate: { name: 'context' },
+      candidate: { name: 'context-explainer' },
       session: { sessionId: 'cmd-pick' },
       position: 'leading',
       via: 'menu',
@@ -105,10 +105,10 @@ describe('matchEnter', () => {
   test('the bare /context line arms the bare-token guard, opens the modal, and answers handled', async () => {
     const { source } = setup()
     assert.ok(source.matchEnter, 'the /context source registers matchEnter')
-    const outcome = await source.matchEnter({ sessionId: 'cmd-enter' }, '/context', SIGNAL)
+    const outcome = await source.matchEnter({ sessionId: 'cmd-enter' }, '/context-explainer', SIGNAL)
     assert.equal(outcome, 'handled')
     assert.equal(modalStoreOf('cmd-enter').getSnapshot(), true)
-    assert.deepEqual(takePendingConsume('cmd-enter'), { kind: 'bare-token', token: '/context' })
+    assert.deepEqual(takePendingConsume('cmd-enter'), { kind: 'bare-token', token: '/context-explainer' })
   })
 
   test('a line other than the bare /context is not matched', async () => {

@@ -1,3 +1,5 @@
+> 本仓库是定制 Fork（dsh-context-explainer）。改动说明见 [README-EXPLAINER.md](README-EXPLAINER.md)；以下为上游原文。
+
 ![Social preview](https://raw.githubusercontent.com/bowenliang123/dsh-context/main/docs/social-preview.png)
 
 # dsh-context

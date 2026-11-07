@@ -197,45 +197,75 @@ describe('ContextView — file activity card', () => {
     return { m, card }
   }
 
-  test('the session workspace relativizes row paths; the host opener opens the resolved file', async () => {
+  function stubFileFetch(payload: unknown = { ok: true, text: 'const a = 1', truncated: false, size: 11 }) {
+    const calls: { url: string; body: string }[] = []
+    const original = globalThis.fetch
+    const stub = async (url: unknown, init?: { body?: unknown }) => {
+      calls.push({ url: String(url), body: typeof init?.body === 'string' ? init.body : '' })
+      return { ok: true, json: async () => payload }
+    }
+    ;(globalThis as { fetch: unknown }).fetch = stub
+    return { calls, restore: () => { (globalThis as { fetch: unknown }).fetch = original } }
+  }
+
+  test('a file row click opens the in-plugin preview instead of the DSH window', async () => {
     const { ctx, opened, calls } = openCtx('sv-files-open')
-    const { m, card } = await mountOpen('sv-files-open', '/repo/src/a.ts', ctx)
-    const row = query(card, '.lc-fa-row')
-    assert.ok(row.querySelector('.lc-fa-path em')?.textContent === 'src/')
-    const name = query(row, '.lc-fa-file')
-    assert.equal(name.getAttribute('title'), DICT_EN['files.open'])
-    await click(name)
-    assert.deepEqual(opened, ['/repo/src/a.ts'])
-    assert.deepEqual(calls, ['session/openWorkspacePath'])
-    await m.unmount()
+    const stub = stubFileFetch()
+    try {
+      const { m, card } = await mountOpen('sv-files-open', '/repo/src/a.ts', ctx)
+      const row = query(card, '.lc-fa-row')
+      assert.ok(row.querySelector('.lc-fa-path em')?.textContent === './src/')
+      const name = query(row, '.lc-fa-file')
+      assert.equal(name.getAttribute('title'), DICT_EN['files.preview'])
+      await click(name)
+      await flush()
+      assert.deepEqual(opened, [], 'no system opener runs')
+      assert.deepEqual(calls, [], 'no DSH rpc runs')
+      assert.equal(stub.calls.length, 1)
+      assert.ok(stub.calls[0].url.includes('api/dsh-context-explainer/file'))
+      assert.ok(stub.calls[0].body.includes('/repo/src/a.ts'))
+      assert.ok(document.querySelector('.lc-text-zoom') !== null, 'the plugin overlay renders the file')
+      await m.unmount()
+    } finally {
+      stub.restore()
+    }
+  })
 
+  test('every enlarge entry stays inside the plugin: the row zoom button opens the same overlay', async () => {
     const previewed: string[] = []
-    const previewCtx = openCtx('sv-preview', { openResource: (address: string) => { previewed.push(address) } })
-    const preview = await mountOpen('sv-preview', '/repo/src/a.ts', previewCtx.ctx)
-    const previewName = query(query(preview.card, '.lc-fa-row'), '.lc-fa-file')
-    assert.equal(previewName.getAttribute('title'), DICT_EN['files.preview'])
-    await click(previewName)
-    assert.deepEqual(previewed, ['dsh-resource://file/session/sv-preview/src/a.ts'])
-    assert.deepEqual(previewCtx.opened, [])
-    await preview.m.unmount()
+    const { ctx, opened } = openCtx('sv-preview', { openResource: (address: string) => { previewed.push(address) } })
+    const stub = stubFileFetch({ ok: true, text: 'line', truncated: true, size: 4 })
+    try {
+      const { m, card } = await mountOpen('sv-preview', '/repo/src/a.ts', ctx)
+      const zoom = query(query(card, '.lc-fa-row'), '.lc-fa-zoom')
+      await click(zoom)
+      await flush()
+      assert.deepEqual(previewed, [])
+      assert.deepEqual(opened, [])
+      assert.equal(stub.calls.length, 1)
+      assert.ok(document.querySelector('.lc-zoom-pre') !== null)
+      await m.unmount()
+    } finally {
+      stub.restore()
+    }
   })
 
-  test('a Sidebar that refuses the address falls back to the system opener', async () => {
-    const { ctx, opened } = openCtx('sv-preview-no', { openResource: () => { throw new Error('no registered tab type claims it') } })
-    const { m, card } = await mountOpen('sv-preview-no', '/repo/src/a.ts', ctx)
-    await click(query(query(card, '.lc-fa-row'), '.lc-fa-file'))
-    assert.deepEqual(opened, ['/repo/src/a.ts'])
-    await m.unmount()
-  })
-
-  test('an unencodable path skips the preview and still opens on the system', async () => {
+  test('an unencodable path still renders inside the plugin and never opens the system viewer', async () => {
     const previewed: string[] = []
     const { ctx, opened } = openCtx('sv-preview-bad', { openResource: (address: string) => { previewed.push(address) } })
-    const { m, card } = await mountOpen('sv-preview-bad', '\uD800', ctx)
-    await click(query(query(card, '.lc-fa-row'), '.lc-fa-file'))
-    assert.deepEqual(previewed, [])
-    assert.deepEqual(opened, ['/repo/\uD800'])
-    await m.unmount()
+    const stub = stubFileFetch({ ok: false, error: { code: 'x', message: 'read failed' } })
+    try {
+      const { m, card } = await mountOpen('sv-preview-bad', '\uD800', ctx)
+      await click(query(query(card, '.lc-fa-row'), '.lc-fa-file'))
+      await flush()
+      assert.deepEqual(previewed, [])
+      assert.deepEqual(opened, [])
+      assert.equal(stub.calls.length, 1)
+      assert.ok((document.body.textContent ?? '').includes('read failed'))
+      await m.unmount()
+    } finally {
+      stub.restore()
+    }
   })
 
   test('a capability probe that settles after unmount drops its answer', async () => {

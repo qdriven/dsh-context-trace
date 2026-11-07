@@ -114,7 +114,7 @@ export function makeContextBrowser(
     const miss = useFetchOnMiss(
       openSeq !== null && !convBySeq.has(openSeq) ? openSeq : null,
       fetchContent,
-      'dsh-context: targeted history read failed',
+      'dsh-context-explainer: targeted history read failed',
     )
     const bySeq = useMemo(() => {
       if (miss.values.size === 0) return convBySeq
@@ -241,7 +241,7 @@ export function makeContextBrowser(
     const epoch = useFetchOnMiss(
       contentSeq,
       fetchHeader,
-      'dsh-context: header content fetch failed',
+      'dsh-context-explainer: header content fetch failed',
     )
     const headerContent = epoch.values
     const headerNote = fetchMissNote(t, fetchHeader, epoch.state, epoch.retry, 'browser.headerMetaOnly')
@@ -471,7 +471,7 @@ export function makeContextBrowser(
       const content = headerContent.get(sys.seq)
       if (content === undefined) return <div className="lc-br-note">{headerNote}</div>
       if (content.system === undefined) return <div className="lc-br-note">{t('browser.noSystem')}</div>
-      return <TextSection label={catLabel('system')} text={content.system} rich={rich} lines={lineLabel} />
+      return <TextSection label={catLabel('system')} text={content.system} rich={rich} lines={lineLabel} zoomTitle={t('fs.open')} />
     }
 
     const catBody = (c: string): ReactNode => {
@@ -494,6 +494,7 @@ export function makeContextBrowser(
           empty: t('tool.paramsEmpty'),
           show: t('tool.jsonToggle'),
           hide: t('tool.jsonHide'),
+          zoom: t('fs.open'),
         }
         const content = headerContent.get(view.header.seq)
         const epochStamp = stampFor(view.header.seq)

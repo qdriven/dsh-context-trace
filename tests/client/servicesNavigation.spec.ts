@@ -126,14 +126,14 @@ describe('openPluginSettings', () => {
   test('opens this bundle\'s page through the panel\'s own verb, bound to its service instance', () => {
     const opened: string[] = []
     openPluginSettings(ctxWith({ pluginNavigation: { openBundle: (name: string) => { opened.push(name) } } }))
-    assert.deepEqual(opened, ['dsh-context'])
+    assert.deepEqual(opened, ['dsh-context-explainer'])
     let seen: unknown
     const face = {
       target: 'bundle',
       openBundle(this: { target: string }, name: string) { seen = `${this.target}:${name}` },
     }
     openPluginSettings(ctxWith({ pluginNavigation: face }))
-    assert.equal(seen, 'bundle:dsh-context')
+    assert.equal(seen, 'bundle:dsh-context-explainer')
   })
 
   test('a shell without the Plugins panel module, a verb-less face, or a hostile face never throws', () => {

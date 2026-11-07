@@ -8,7 +8,7 @@ import { DetailShadow, foldLog, observeFaceOf } from './detailShadow'
 import type { ContextTimelineDetail, Snapshot } from '../shared/types'
 import type { TimelineState } from './foldState'
 
-export const DETAIL_ROUTE = '/api/dsh-context/detail'
+export const DETAIL_ROUTE = '/api/dsh-context-explainer/detail'
 
 const PAYLOAD_CACHE_MAX = 4
 
@@ -107,10 +107,10 @@ export function watchDetailChannel(
           : undefined
         headOnly = body !== null && typeof body === 'object' && (body as { head?: unknown }).head === true
       } catch {
-        return failure('dsh-context/bad-request', 'body is not JSON')
+        return failure('dsh-context-explainer/bad-request', 'body is not JSON')
       }
       if (typeof sessionId !== 'string' || sessionId === '') {
-        return failure('dsh-context/bad-request', 'missing sessionId')
+        return failure('dsh-context-explainer/bad-request', 'missing sessionId')
       }
       try {
         const session = getSession(sessionId)
@@ -163,7 +163,7 @@ export function watchDetailChannel(
       }
     }
 
-    if (!registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, DETAIL_ROUTE, handler, 'dsh-context: detail route')) return
+    if (!registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, DETAIL_ROUTE, handler, 'dsh-context-explainer: detail route')) return
     gate.live = true
     return () => {
       gate.live = false

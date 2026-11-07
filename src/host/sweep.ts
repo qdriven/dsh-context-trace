@@ -1,11 +1,12 @@
 import type { Context } from '@deepseek-ai/cordis'
 import { deriveHeadState } from './foldState'
 import { asRecord } from './record'
-import { TIMELINE_STATE_VERSION } from './timeline'
 
 const ROW_KEY = 'contextTimeline'
 
 const LEGACY_VERSION = 36
+
+const HEAD_ONLY_STATE_VERSION = 37
 
 interface RowLike {
   ver?: unknown
@@ -37,7 +38,7 @@ export function watchTimelineRowSweep(ctx: Context): void {
     const table = tableOf(c)
     if (table === undefined) return
     void sweep(ctx, table).catch((error: unknown) => {
-      ctx.logger.warn(`dsh-context: timeline row sweep stopped early (${String(error)})`)
+      ctx.logger.warn(`dsh-context-explainer: timeline row sweep stopped early (${String(error)})`)
     })
   })
 }
@@ -58,7 +59,7 @@ async function sweep(ctx: Context, table: TableLike): Promise<void> {
           ...current,
           rows: {
             ...current.rows,
-            [ROW_KEY]: { ver: TIMELINE_STATE_VERSION, seq: currentRow.seq, val: slim },
+            [ROW_KEY]: { ver: HEAD_ONLY_STATE_VERSION, seq: currentRow.seq, val: slim },
           },
         }
       })
@@ -68,9 +69,9 @@ async function sweep(ctx: Context, table: TableLike): Promise<void> {
     }
   }
   if (migrated > 0) {
-    ctx.logger.info(`dsh-context: compacted ${migrated} persisted contextTimeline row(s) to the head-only shape`)
+    ctx.logger.info(`dsh-context-explainer: compacted ${migrated} persisted contextTimeline row(s) to the head-only shape`)
   }
   if (stalled > 0) {
-    ctx.logger.warn(`dsh-context: ${stalled} legacy contextTimeline row(s) stayed behind (their sessions refold on the next read)`)
+    ctx.logger.warn(`dsh-context-explainer: ${stalled} legacy contextTimeline row(s) stayed behind (their sessions refold on the next read)`)
   }
 }

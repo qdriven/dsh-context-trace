@@ -1,17 +1,19 @@
-export const DETAIL_ROUTE = 'api/dsh-context/detail'
+export const DETAIL_ROUTE = 'api/dsh-context-explainer/detail'
 
-export const COMMANDS_ROUTE = 'api/dsh-context/commands'
+export const COMMANDS_ROUTE = 'api/dsh-context-explainer/commands'
 
-export const BALANCE_ROUTE = 'api/dsh-context/balance'
+export const BALANCE_ROUTE = 'api/dsh-context-explainer/balance'
 
-export const RECOM_ROUTE = 'api/dsh-context/recom'
+export const RECOM_ROUTE = 'api/dsh-context-explainer/recom'
 
-export const FLEET_ROUTE = 'api/dsh-context/fleet'
+export const FLEET_ROUTE = 'api/dsh-context-explainer/fleet'
 
-export const SKILLS_ROUTE = 'api/dsh-context/skills'
+export const SKILLS_ROUTE = 'api/dsh-context-explainer/skills'
 
-export const BACKFILL_ROUTE = 'api/dsh-context/backfill'
+export const BACKFILL_ROUTE = 'api/dsh-context-explainer/backfill'
 
-export const ATTACHMENT_ROUTE = 'api/dsh-context/attachment'
+export const ATTACHMENT_ROUTE = 'api/dsh-context-explainer/attachment'
 
-export const SNAPSHOT_ROUTE = 'api/dsh-context/snapshot'
+export const SNAPSHOT_ROUTE = 'api/dsh-context-explainer/snapshot'
+
+export const FILE_ROUTE = 'api/dsh-context-explainer/file'

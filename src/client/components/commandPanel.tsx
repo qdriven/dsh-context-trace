@@ -14,6 +14,7 @@ import { makeDetailNote } from './detailNote'
 import { makeRichText } from './richText'
 import { IconApi, IconShare } from '../primitives'
 import { Section } from './section'
+import { useTextZoom, ZoomButton, ZoomOverlay } from './textZoom'
 import { useRowWindow } from './useRowWindow'
 import type { CommandFill } from './useCommandLog'
 
@@ -73,24 +74,47 @@ export function makeCommandPanel(kit: ViewKit): ComponentType<CommandPanelProps>
     children: ReactNode
   }): ReactElement {
     const find = rich.useRichFind(props.text, 'raw')
+    const zoom = useTextZoom()
+    const zoomTitle = t('fs.open')
     return (
-      <Section
-        label={props.label}
-        foldHead
-        headNote={props.headNote}
-        meta={props.meta}
-        actions={<>
-          {props.leading}
-          <rich.RichCopy text={props.text} />
-          {find.button}
-        </>}
-      >
-        {find.bar}
-        <div key={find.bodyKey} ref={find.bodyRef}>{props.children}</div>
-        {props.trailing}
-      </Section>
+      <>
+        <Section
+          label={props.label}
+          foldHead
+          headNote={props.headNote}
+          meta={props.meta}
+          actions={<>
+            {props.leading}
+            <rich.RichCopy text={props.text} />
+            {find.button}
+            <ZoomButton open={zoom.open} title={zoomTitle} onOpen={zoom.openZoom} />
+          </>}
+        >
+          {zoom.open ? null : (
+            <>
+              {find.bar}
+              <div key={find.bodyKey} ref={find.bodyRef}>{props.children}</div>
+              {props.trailing}
+            </>
+          )}
+        </Section>
+        <ZoomOverlay
+          open={zoom.open}
+          label={props.label}
+          title={zoomTitle}
+          meta={props.meta}
+          tools={<>
+            <rich.RichCopy text={props.text} />
+            {find.button}
+          </>}
+          onClose={zoom.closeZoom}
+        >
+          {props.children}
+        </ZoomOverlay>
+      </>
     )
   }
+
 
   return memo(function CommandPanel(props: CommandPanelProps): ReactElement {
     kit.useLocaleTick()

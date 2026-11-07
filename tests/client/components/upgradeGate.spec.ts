@@ -16,7 +16,7 @@ describe('UpgradeGate', () => {
     const en = await render('s-en')
     try {
       assert.match(text(en.container), /Update DeepSeek Harness/)
-      assert.match(text(en.container), /dsh-context supports DeepSeek Harness v0\.2\.0-rc\.2 or newer\./)
+      assert.match(text(en.container), /dsh-context-explainer supports DeepSeek Harness v0\.2\.0-rc\.2 or newer\./)
       assert.match(text(en.container), /v0\.1\.1-rc\.2/)
       assert.match(text(en.container), /Current/)
       assert.match(text(en.container), /Minimum required/)

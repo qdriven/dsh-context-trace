@@ -15,8 +15,6 @@ export interface DonutProps {
   size?: number
   hoverKey?: string | null
   onHoverKey?: (key: string | null) => void
-  pickKey?: string | null
-  onPickKey?: (key: string | null) => void
 }
 
 export function Donut(props: DonutProps): ReactElement {
@@ -57,7 +55,7 @@ export function Donut(props: DonutProps): ReactElement {
           : arcs.map((a, i) => (
             <circle
               key={a.key}
-              className={'lc-donut-seg fill-none stroke-4 animate-lc-donut-in motion-reduce:animate-none' + (props.hoverKey === a.key || props.pickKey === a.key ? ' lc-donut-seg-on' : '')}
+              className={'lc-donut-seg fill-none stroke-4 animate-lc-donut-in motion-reduce:animate-none' + (props.hoverKey === a.key ? ' lc-donut-seg-on' : '')}
               cx="21"
               cy="21"
               r="15.9155"
@@ -65,7 +63,6 @@ export function Donut(props: DonutProps): ReactElement {
               strokeDashoffset={a.offset}
               style={{ '--lc-i': i, stroke: a.color } as CSSProperties}
               onMouseEnter={() => { if (props.onHoverKey !== undefined) props.onHoverKey(a.key) }}
-              onClick={() => { if (props.onPickKey !== undefined) props.onPickKey(a.key) }}
             />
           ))}
       </svg>

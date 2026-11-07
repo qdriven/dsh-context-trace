@@ -1,0 +1,49 @@
+.lc-pi-code {
+  font-family: var(--dsw-font-family-mono, monospace);
+  font-size: 11px;
+  color: var(--dsw-alias-label-secondary);
+  background: var(--dsw-alias-bg-layer-2);
+  border-radius: 4px;
+  padding: 1px 5px;
+  word-break: break-all;
+}
+
+.lc-pi-id { color: var(--dsw-alias-label-primary); }
+
+.lc-pi-slot { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+
+.lc-pi-arrow { color: var(--dsw-alias-label-secondary); font-size: 11px; }
+
+.lc-pi-section { margin-top: 10px; padding-top: 8px; border-top: var(--lc-line-fine, 0.5px solid var(--dsw-alias-border-l2)); }
+
+.lc-pi-section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+.lc-pi-section-title { font-weight: 600; font-size: 12px; color: var(--dsw-alias-label-primary); }
+
+.lc-pi-slotgrid { display: grid; grid-template-columns: 1fr; gap: 6px; }
+
+/* Per-registration accent colours so each slot id is recognisable at a glance. */
+.lc-slot-c0 { color: var(--dsw-alias-state-info-primary, #3b82f6); }
+.lc-slot-c1 { color: var(--dsw-alias-state-success-primary, #22a06b); }
+.lc-slot-c2 { color: var(--dsw-alias-state-warn-primary, #d97706); }
+.lc-slot-c3 { color: var(--dsw-alias-state-error-primary, #dc2626); }
+.lc-slot-c4 { color: var(--dsw-alias-state-brand-primary, #7c3aed); }
+.lc-pi-id { font-weight: 600; }
+
+.lc-fs-toolbar { display: flex; justify-content: flex-end; margin-bottom: 6px; }
+.lc-fs-trigger { border: 1px solid var(--dsw-alias-border-l2); background: var(--dsw-alias-bg-layer-2); }
+
+.lc-pi-section-toggle {
+  width: 100%;
+  appearance: none;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+  cursor: pointer;
+  text-align: left;
+  margin-bottom: 6px;
+}
+
+.lc-pi-chev { flex: none; width: 12px; color: var(--dsw-alias-label-secondary); font-size: 10px; }

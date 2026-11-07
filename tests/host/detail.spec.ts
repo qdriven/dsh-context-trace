@@ -132,7 +132,7 @@ describe('watchDetailChannel gating', () => {
     })
     const gate = watchDetailChannel(ctx, BOUNDS)
     assert.equal(gate.live, true)
-    assert.equal(captured.path, '/api/dsh-context/detail')
+    assert.equal(captured.path, '/api/dsh-context-explainer/detail')
     for (const d of disposers) d()
     assert.equal(gate.live, false)
   })
@@ -162,11 +162,11 @@ describe('the detail route', () => {
     for (const body of [null, 42, {}, { sessionId: 42 }, { sessionId: '' }]) {
       const result = await call(captured, body) as { ok: boolean; error?: { code: string } }
       assert.equal(result.ok, false, `payload ${JSON.stringify(body)} rejected`)
-      assert.equal(result.error?.code, 'dsh-context/bad-request')
+      assert.equal(result.error?.code, 'dsh-context-explainer/bad-request')
     }
     const raw = await callRaw(captured, 'not json') as { ok: boolean; error?: { code: string } }
     assert.equal(raw.ok, false)
-    assert.equal(raw.error?.code, 'dsh-context/bad-request')
+    assert.equal(raw.error?.code, 'dsh-context-explainer/bad-request')
   })
 
   test('a session outside the live set and an absent unit state both resolve to the typed null', async () => {

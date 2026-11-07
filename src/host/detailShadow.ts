@@ -71,7 +71,7 @@ export class DetailShadow {
   ) {
     ctx.effect(() => () => {
       this.entries.clear()
-    }, 'dsh-context.detailShadow')
+    }, 'dsh-context-explainer.detailShadow')
     ctx.on('session/event', (session: SessionLike, event: unknown) => {
       if (typeof session.id !== 'string') return
       this.advance(session.id, event)

@@ -150,7 +150,7 @@ describe('watchCommandPageChannel gating', () => {
       sessionQuery: { observeSession: () => Promise.resolve(null) },
     })
     watchCommandPageChannel(ctx, BOUNDS)
-    assert.equal(captured.path, '/api/dsh-context/commands')
+    assert.equal(captured.path, '/api/dsh-context-explainer/commands')
     assert.equal(disposers.length, 1)
     for (const d of disposers) d()
   })
@@ -162,10 +162,10 @@ describe('the command page route', () => {
     for (const body of [null, 42, {}, { sessionId: 42 }, { sessionId: '' }]) {
       const result = await call(captured, body) as { ok: boolean; error?: { code: string } }
       assert.equal(result.ok, false, `payload ${JSON.stringify(body)} rejected`)
-      assert.equal(result.error?.code, 'dsh-context/bad-request')
+      assert.equal(result.error?.code, 'dsh-context-explainer/bad-request')
     }
     const raw = await call(captured, 'not json') as { ok: boolean; error?: { code: string } }
-    assert.equal(raw.error?.code, 'dsh-context/bad-request')
+    assert.equal(raw.error?.code, 'dsh-context-explainer/bad-request')
     for (const beforeSeq of [-1, 'later', Number.NaN, Infinity]) {
       const result = await call(captured, { sessionId: 's1', beforeSeq }) as { ok: boolean; error?: { code: string } }
       assert.equal(result.ok, false, `beforeSeq ${String(beforeSeq)} rejected`)

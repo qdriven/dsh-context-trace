@@ -6,7 +6,7 @@ import type { SessionEvent, SessionHeader } from '@deepseek-ai/dsh-session'
 import { type ColdReadGate, makeColdReadGate } from './coldRead'
 import { type ConnectionHostFace, registerPostRoute } from './connection'
 
-export const BACKFILL_ROUTE = '/api/dsh-context/backfill'
+export const BACKFILL_ROUTE = '/api/dsh-context-explainer/backfill'
 
 interface SessionQueryLike {
   listSessions(signal?: AbortSignal): Promise<unknown>
@@ -161,7 +161,7 @@ async function coldSnapshotSliced(
   try {
     await faces.write(prepared)
   } catch (error: unknown) {
-    ctx.logger.warn(`dsh-context: projection backfill write-back for "${header.id}" failed (cache stays stale): ${messageOf(error)}`)
+    ctx.logger.warn(`dsh-context-explainer: projection backfill write-back for "${header.id}" failed (cache stays stale): ${messageOf(error)}`)
   }
   return { outcome: 'done', workMs }
 }
@@ -202,7 +202,7 @@ export function watchActivityBackfill(
       tryLaunch()
       return Response.json({ ok: true }, { headers: { 'cache-control': 'no-store' } })
     }
-    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, BACKFILL_ROUTE, handler, 'dsh-context: backfill route')
+    registerPostRoute(c, c.get('connection') as ConnectionHostFace | undefined, BACKFILL_ROUTE, handler, 'dsh-context-explainer: backfill route')
   })
 
   const runnerFiber = ctx.inject(['sessionQuery', 'sessionProjectionCache', 'sessionPersistence', 'sessions'], (raw) => {
@@ -264,7 +264,7 @@ export function watchActivityBackfill(
         roundWork += costMs
         if (roundWork >= pacing.workBudgetMs) {
           roundWork = 0
-          ctx.logger.info(`dsh-context: projection backfill pausing after ${Math.round(pacing.workBudgetMs / 1000)}s of fold work; resuming in ${Math.round(pacing.roundPauseMs / 1000)}s`)
+          ctx.logger.info(`dsh-context-explainer: projection backfill pausing after ${Math.round(pacing.workBudgetMs / 1000)}s of fold work; resuming in ${Math.round(pacing.roundPauseMs / 1000)}s`)
           await sleep(pacing.roundPauseMs)
           return
         }
@@ -298,24 +298,24 @@ export function watchActivityBackfill(
         } catch (error: unknown) {
           if (isUnsupportedFormat(error)) {
             refused++
-            ctx.logger.debug(`dsh-context: projection backfill skipped "${header.id}" (${messageOf(error)})`)
+            ctx.logger.debug(`dsh-context-explainer: projection backfill skipped "${header.id}" (${messageOf(error)})`)
           } else {
-            ctx.logger.warn(`dsh-context: projection backfill skipped "${header.id}" (${messageOf(error)})`)
+            ctx.logger.warn(`dsh-context-explainer: projection backfill skipped "${header.id}" (${messageOf(error)})`)
           }
         }
         await rest(Math.max(0, pacing.now() - started - slicedWorkMs))
       }
-      if (folded > 0) ctx.logger.info(`dsh-context: projection rows backfilled for ${folded} session(s)`)
+      if (folded > 0) ctx.logger.info(`dsh-context-explainer: projection rows backfilled for ${folded} session(s)`)
       if (paused) {
-        ctx.logger.info('dsh-context: projection backfill stopped early under heap pressure (remaining sessions refold on their next live activity)')
+        ctx.logger.info('dsh-context-explainer: projection backfill stopped early under heap pressure (remaining sessions refold on their next live activity)')
       }
       if (refused > 0) {
-        ctx.logger.info(`dsh-context: projection backfill skipped ${refused} session(s) (legacy log format is not migratable; sources left unchanged)`)
+        ctx.logger.info(`dsh-context-explainer: projection backfill skipped ${refused} session(s) (legacy log format is not migratable; sources left unchanged)`)
       }
     }
     launch = () => {
       void run().catch((error: unknown) => {
-        if (!abort.signal.aborted) ctx.logger.warn(`dsh-context: projection backfill stopped early (${messageOf(error)})`)
+        if (!abort.signal.aborted) ctx.logger.warn(`dsh-context-explainer: projection backfill stopped early (${messageOf(error)})`)
       })
     }
     tryLaunch()

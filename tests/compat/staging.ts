@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { Baseline } from '../baselines'
 
 export const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
-export const DSH_REPO = process.env.DSH_REPO || join(process.env.HOME, 'dev', 'deepseek-harness')
+export const DSH_REPO = process.env.DSH_REPO || join(homedir(), 'dev', 'deepseek-harness')
 export const STAGE = join(REPO, '.tmp', 'compat')
 
 export function checkoutMissing(): boolean {
@@ -60,7 +61,7 @@ function constEnumMembers(tag: string, tagPath: string, name: string): Map<strin
     if (key === '') continue
     if (assigned !== undefined) {
       const parsed = Number(assigned)
-      if (!Number.isFinite(parsed)) throw new Error(`dsh-context compat: ${name}.${key} has a non-numeric initializer`)
+      if (!Number.isFinite(parsed)) throw new Error(`dsh-context-explainer compat: ${name}.${key} has a non-numeric initializer`)
       value = parsed
     }
     members.set(key, value)
@@ -100,7 +101,7 @@ export function ensureHostDeps(baseline: Baseline): void {
   const deps = hostDepsOf(baseline)
   mkdirSync(dir, { recursive: true })
   writeFileSync(join(dir, 'package.json'), JSON.stringify({
-    name: `dsh-context-compat-${baseline.id}`, private: true, type: 'module',
+    name: `dsh-context-explainer-compat-${baseline.id}`, private: true, type: 'module',
     dependencies: deps,
   }, null, 2))
   const missing = Object.keys(deps).filter(name => !existsSync(join(dir, 'node_modules', ...name.split('/'))))
